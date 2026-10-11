@@ -58,7 +58,7 @@ def summary(df: pd.DataFrame, meta: dict, report: CleanReport) -> str:
     pct = lambda n, d: f"{n} ({n / d:.0%})" if d else str(n)
     lines = [
         f"Rows in:            {report.rows_in}",
-        *(f"Dropped ({r}):  {n}" for r, n in report.dropped.items() if n),
+        *([f"Dropped ({r}):  {n}" for r, n in report.dropped.items() if n] or ["Dropped:            none"]),
         f"Duplicates merged:  {report.duplicates_merged}",
         f"Restaurants out:    {report.rows_out}",
         f"No rating:          {pct(int(df['rating'].isna().sum()), len(df))}"

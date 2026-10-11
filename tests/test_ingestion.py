@@ -231,8 +231,15 @@ def test_main_writes_parquet_and_meta(data_dir, monkeypatch, capsys):
     assert meta["cities"] == ["Bangalore"]
     assert meta["cuisines"][0] == "Chinese"  # most common first
     assert set(meta["budget_thresholds"]) == {"low_max", "medium_max"}
-    assert "Restaurants out:    2" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "Restaurants out:    2" in out and "Dropped:            none" in out
     assert not list(data_dir.glob(".*.*"))  # no temp files left behind
+
+
+def test_summary_lists_drop_reasons(data_dir, monkeypatch, capsys):
+    monkeypatch.setattr(cli, "load_raw", lambda: frame(raw_row(), raw_row(url="https://www.zomato.com/bangalore/b", name=" ")))
+    assert cli.main() == 0
+    assert "Dropped (no name):  1" in capsys.readouterr().out
 
 
 def test_failed_load_keeps_existing_files(data_dir, monkeypatch):
