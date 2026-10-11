@@ -25,7 +25,7 @@ def test_defaults():
     assert s.llm_api_key is None
     assert s.llm_model == "openai/gpt-oss-20b"
     assert s.llm_reasoning_effort == "low"
-    assert s.shortlist_size == 20
+    assert s.shortlist_size == 10
     assert s.data_dir == PROJECT_ROOT / "data"
 
 

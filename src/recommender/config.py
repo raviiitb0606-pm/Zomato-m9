@@ -30,7 +30,8 @@ class Settings(BaseSettings):
     # Groq counts this whole cap against the tokens-per-minute limit, used or not.
     llm_max_completion_tokens: int = Field(1024, ge=64, le=8192)
 
-    shortlist_size: int = Field(20, ge=1, le=50, validation_alias=AliasChoices("CANDIDATE_CAP", "SHORTLIST_SIZE"))
+    # Each candidate costs about 100 prompt tokens against Groq's 8K tokens/minute limit.
+    shortlist_size: int = Field(10, ge=1, le=50, validation_alias=AliasChoices("CANDIDATE_CAP", "SHORTLIST_SIZE"))
     data_dir: Path = PROJECT_ROOT / "data"
 
     @field_validator("llm_api_key", mode="before")
