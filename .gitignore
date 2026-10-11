@@ -1,0 +1,15 @@
+.DS_Store
+node_modules/
+.env
+.env.local
+output/
+*.log
+
+# Restaurant recommender (Python)
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
+# Generated data, root only (course/data/ is tracked course content)
+/data/*
+!/data/.gitkeep
