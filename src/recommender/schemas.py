@@ -70,6 +70,7 @@ class Restaurant(BaseModel):
     rating: float | None = Field(None, ge=0, le=5)
     votes: int = Field(0, ge=0)
     tags: list[str] = Field(default_factory=list)
+    popular_dishes: list[str] = Field(default_factory=list)
 
 
 class Recommendation(BaseModel):
