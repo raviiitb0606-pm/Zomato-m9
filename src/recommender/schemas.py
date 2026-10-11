@@ -86,6 +86,20 @@ class Recommendation(BaseModel):
     explanation_source: Literal["llm", "template"] = "llm"
 
 
+class BudgetThresholds(BaseModel):
+    low_max: int
+    medium_max: int
+
+
+class Meta(BaseModel):
+    """GET /meta: the values the UI form offers."""
+
+    cities: list[str]
+    localities: list[str]
+    cuisines: list[str]  # most common first
+    budget_thresholds: BudgetThresholds
+
+
 class RecommendationResponse(BaseModel):
     summary: str = ""
     recommendations: list[Recommendation] = Field(default_factory=list)

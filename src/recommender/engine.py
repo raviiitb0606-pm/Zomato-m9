@@ -8,6 +8,7 @@ import logging
 import sys
 import time
 
+from recommender.config import Settings, get_settings
 from recommender.llm.base import LLMClient, LLMError
 from recommender.prompt import (
     RESPONSE_SCHEMA, SYSTEM_PROMPT, LLMReply, ReplyError, build_user_prompt, parse_reply, pick_count,
@@ -59,10 +60,13 @@ class Engine:
         self.shortlist_size = shortlist_size
 
     @classmethod
-    def from_settings(cls) -> "Engine":
+    def from_settings(cls, settings: Settings | None = None) -> "Engine":
+        """Raises DataNotFoundError (no data) or LLMError (no key)."""
         from recommender.llm.groq_client import GroqClient
 
-        return cls(RestaurantStore.load(), GroqClient.from_settings())
+        settings = settings or get_settings()
+        return cls(RestaurantStore.load(settings.data_dir), GroqClient.from_settings(settings),
+                   settings.shortlist_size)
 
     def _ask_llm(self, prefs: Preferences, candidates: list[Restaurant]) -> LLMReply | None:
         """The model's reply, or None if it failed. Malformed replies get one retry."""
