@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     )
     llm_reasoning_effort: Literal["low", "medium", "high"] = "low"
     # Groq counts this whole cap against the tokens-per-minute limit, used or not.
-    llm_max_completion_tokens: int = Field(1024, ge=64, le=8192)
+    # An upper limit only: each call asks for what its reply needs (prompt.completion_budget).
+    llm_max_completion_tokens: int = Field(1280, ge=64, le=8192)
 
     # Each candidate costs about 100 prompt tokens against Groq's 8K tokens/minute limit.
     shortlist_size: int = Field(10, ge=1, le=50, validation_alias=AliasChoices("CANDIDATE_CAP", "SHORTLIST_SIZE"))

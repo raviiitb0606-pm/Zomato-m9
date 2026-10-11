@@ -9,7 +9,10 @@ from recommender.engine import (
 )
 from recommender.llm.base import LLMError, MalformedReplyError
 from recommender.llm.fake import FakeLLMClient, reply_json
+from recommender.prompt import completion_budget
 from recommender.schemas import Preferences
+from recommender.store import RestaurantStore
+from conftest import fixture_frame
 
 BTM = Preferences(location="BTM", top_k=3)
 
@@ -27,9 +30,23 @@ def ids(resp):
     return [r.id for r in resp.recommendations]
 
 
-def reply(*items, summary="LLM summary."):
+_STORE = RestaurantStore(fixture_frame(), {})
+
+
+def num(rid, prefs=BTM):
+    """The model sees candidates numbered from 1 in pre-ranked order and replies with those.
+    Ids that aren't candidates pass through unchanged, as a model's bad pick would."""
+    order = [r.id for r in _STORE.query(prefs).restaurants]
+    return order.index(rid) + 1 if rid in order else rid
+
+
+def reply(*items, summary="LLM summary.", prefs=BTM):
     return json.dumps({"summary": summary,
-                       "ranking": [{"id": i, "explanation": e} for i, e in items]})
+                       "ranking": [{"id": num(i, prefs), "explanation": e} for i, e in items]})
+
+
+def rj(ids, prefs=BTM):
+    return reply_json([num(i, prefs) for i in ids])
 
 
 # --- happy path --------------------------------------------------------------
@@ -47,6 +64,12 @@ def test_valid_reply_uses_model_order_and_store_facts(store):
     assert len(fake.calls) == 1
 
 
+def test_reply_cap_is_sized_to_the_picks(store):
+    eng, fake = engine(store, "not json", rj(["r1", "r2", "r3"]))
+    eng.recommend(BTM)  # top_k 3
+    assert [c["max_tokens"] for c in fake.calls] == [completion_budget(3)] * 2  # retry too
+
+
 def test_model_cannot_change_facts(store):
     eng, _ = engine(store, reply(("r1", "Rated 5.0 and free!"), ("r2", "x"), ("r3", "y")))
     rec = eng.recommend(BTM).recommendations[0]
@@ -54,7 +77,7 @@ def test_model_cannot_change_facts(store):
 
 
 def test_extra_picks_are_cut_to_top_k(store):
-    eng, _ = engine(store, reply_json(["r1", "r2", "r3", "r5", "r7"]))
+    eng, _ = engine(store, rj(["r1", "r2", "r3", "r5", "r7"]))
     assert ids(eng.recommend(BTM)) == ["r1", "r2", "r3"]
 
 
@@ -74,7 +97,7 @@ def test_empty_shortlist_never_calls_llm(store, prefs):
 # --- malformed replies -------------------------------------------------------
 
 def test_malformed_then_valid_retries_once_with_the_error(store):
-    eng, fake = engine(store, "not json", reply_json(["r2", "r1", "r3"]))
+    eng, fake = engine(store, "not json", rj(["r2", "r1", "r3"]))
     resp = eng.recommend(BTM)
     assert ids(resp) == ["r2", "r1", "r3"] and resp.llm_fallback is False
     assert len(fake.calls) == 2
@@ -91,7 +114,7 @@ def test_malformed_twice_falls_back_to_preranking(store):
 
 
 def test_provider_schema_rejection_gets_the_retry(store):
-    eng, fake = engine(store, MalformedReplyError("did not match the JSON schema"), reply_json(["r2", "r1", "r3"]))
+    eng, fake = engine(store, MalformedReplyError("did not match the JSON schema"), rj(["r2", "r1", "r3"]))
     resp = eng.recommend(BTM)
     assert ids(resp) == ["r2", "r1", "r3"] and resp.llm_fallback is False
     assert len(fake.calls) == 2 and "did not match the JSON schema" in fake.calls[1]["user"]
@@ -103,7 +126,7 @@ def test_provider_schema_rejection_twice_falls_back(store):
 
 
 def test_retry_prompt_stays_short(store):
-    eng, fake = engine(store, "x" * 5000, reply_json(["r1", "r2", "r3"]))
+    eng, fake = engine(store, "x" * 5000, rj(["r1", "r2", "r3"]))
     eng.recommend(BTM)
     assert len(fake.calls[1]["user"]) - len(fake.calls[0]["user"]) < 400
 
@@ -131,14 +154,16 @@ def test_unexpected_exceptions_propagate(store):
 # --- id validation -----------------------------------------------------------
 
 def test_unknown_ids_dropped_and_topped_up_from_preranking(store, caplog):
-    eng, _ = engine(store, reply(("r2", "Good."), ("fake-bistro", "Invented."), ("r4", "Wrong area.")))
+    # r4 is not a BTM candidate; 42 is past the end of the list.
+    eng, _ = engine(store, reply(("r2", "Good."), ("fake-bistro", "Invented."), ("r4", "Wrong area."),
+                                 (42, "Out of range.")))
     with caplog.at_level(logging.INFO, logger="recommender.engine"):
         resp = eng.recommend(BTM)
     top_up = [i for i in preranked(store) if i != "r2"][:2]
     assert ids(resp) == ["r2", *top_up]
     assert [r.explanation_source for r in resp.recommendations] == ["llm", "template", "template"]
     assert resp.llm_fallback is False and resp.summary == "LLM summary."
-    assert "dropped 2" in caplog.text
+    assert "dropped 3" in caplog.text
 
 
 def test_duplicate_ids_keep_the_first(store):
@@ -148,13 +173,13 @@ def test_duplicate_ids_keep_the_first(store):
     assert len(set(ids(resp))) == 3
 
 
-def test_ids_matched_ignoring_case_and_spaces(store):
-    eng, _ = engine(store, reply_json([" R1 ", "r2", "R3"]))
-    assert ids(eng.recommend(BTM)) == ["r1", "r2", "r3"]
+def test_numbers_accepted_as_ints_or_padded_strings(store):
+    eng, _ = engine(store, reply_json([1, " 2 ", "3"]))
+    assert ids(eng.recommend(BTM)) == preranked(store)[:3]
 
 
 def test_all_ids_unknown_counts_as_fallback(store):
-    eng, _ = engine(store, reply_json(["x", "y", "z"]))
+    eng, _ = engine(store, rj(["x", "y", "z"]))
     resp = eng.recommend(BTM)
     assert ids(resp) == preranked(store)[:3] and resp.llm_fallback is True and resp.summary == FALLBACK_SUMMARY
 
@@ -187,7 +212,7 @@ def test_template_explanation_omits_missing_values(store, rid, expected):
 
 def test_relaxed_constraints_and_message_pass_through(store):
     prefs = Preferences(location="Indiranagar", budget="high", cuisine=["Pizza"], min_rating=4.3)
-    eng, _ = engine(store, reply_json(["r6"]))
+    eng, _ = engine(store, rj(["r6"], prefs=prefs))
     resp = eng.recommend(prefs)
     assert resp.relaxed_constraints == ["min_rating relaxed from 4.3 to 3.8",
                                         "budget relaxed from high to high or medium"]
@@ -205,7 +230,7 @@ def test_json_has_nulls_not_nan(store):
 # --- CLI ---------------------------------------------------------------------
 
 def test_cli_prints_results_and_checks_facts(store, capsys):
-    eng, _ = engine(store, reply_json(["r1", "r7", "r2"]))
+    eng, _ = engine(store, rj(["r1", "r7", "r2"]))
     assert main(["--location", "BTM", "--top-k", "3"], engine=eng) == 0
     out = capsys.readouterr().out
     assert "1. Popular" in out and "facts match dataset: yes" in out and "llm_fallback=False" in out

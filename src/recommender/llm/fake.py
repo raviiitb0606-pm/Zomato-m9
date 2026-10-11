@@ -10,8 +10,9 @@ class FakeLLMClient:
         self.replies = list(replies)
         self.calls: list[dict] = []
 
-    def complete(self, system: str, user: str, response_schema: dict) -> str:
-        self.calls.append({"system": system, "user": user, "response_schema": response_schema})
+    def complete(self, system: str, user: str, response_schema: dict, max_tokens: int | None = None) -> str:
+        self.calls.append({"system": system, "user": user, "response_schema": response_schema,
+                           "max_tokens": max_tokens})
         if not self.replies:
             raise AssertionError("FakeLLMClient: no reply queued")
         reply = self.replies.pop(0)

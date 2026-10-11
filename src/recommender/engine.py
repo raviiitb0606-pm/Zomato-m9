@@ -11,7 +11,8 @@ import time
 from recommender.config import Settings, get_settings
 from recommender.llm.base import LLMClient, LLMError, MalformedReplyError
 from recommender.prompt import (
-    RESPONSE_SCHEMA, SYSTEM_PROMPT, LLMReply, ReplyError, build_user_prompt, parse_reply, pick_count,
+    RESPONSE_SCHEMA, SYSTEM_PROMPT, LLMReply, ReplyError, build_user_prompt, candidate_keys, completion_budget,
+    parse_reply, pick_count,
 )
 from recommender.schemas import Preferences, Recommendation, RecommendationResponse, Restaurant
 from recommender.store import RestaurantStore
@@ -71,8 +72,9 @@ class Engine:
     def _ask_llm(self, prefs: Preferences, candidates: list[Restaurant]) -> LLMReply | None:
         """The model's reply, or None if it failed. Malformed replies get one retry."""
         user = build_user_prompt(prefs, candidates)
+        budget = completion_budget(pick_count(prefs.top_k, candidates))
         try:
-            return parse_reply(self.llm.complete(SYSTEM_PROMPT, user, RESPONSE_SCHEMA))
+            return parse_reply(self.llm.complete(SYSTEM_PROMPT, user, RESPONSE_SCHEMA, budget))
         except (ReplyError, MalformedReplyError) as exc:
             log.warning("llm reply malformed, retrying once: %s", exc)
             retry_user = _retry_prompt(user, exc)
@@ -80,7 +82,7 @@ class Engine:
             log.warning("llm failed, using fallback: %s", exc)
             return None
         try:
-            return parse_reply(self.llm.complete(SYSTEM_PROMPT, retry_user, RESPONSE_SCHEMA))
+            return parse_reply(self.llm.complete(SYSTEM_PROMPT, retry_user, RESPONSE_SCHEMA, budget))
         except (LLMError, ReplyError) as exc:
             log.warning("llm retry failed, using fallback: %s", exc)
             return None
@@ -94,13 +96,13 @@ class Engine:
         want = pick_count(prefs.top_k, candidates)
         reply = self._ask_llm(prefs, candidates)
 
-        # Keep the model's picks that are real, unique shortlist ids, in its order.
-        by_key = {r.id.lower(): r for r in candidates}
+        # Keep the model's picks that are real, unique candidate numbers, in its order.
+        by_key = candidate_keys(candidates)
         picked: list[tuple[Restaurant, str, str]] = []
         seen: set[str] = set()
         dropped = 0
         for item in (reply.ranking if reply else []):
-            r = by_key.get(item.id.strip().lower())
+            r = by_key.get(str(item.id).strip())
             if r is None or r.id in seen:
                 dropped += 1
                 continue

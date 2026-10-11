@@ -40,7 +40,7 @@ def client(store, fake):
 # --- /recommend --------------------------------------------------------------
 
 def test_example_body_returns_documented_shape(client, fake):
-    fake.replies.append(reply_json(["r6"], summary="One Italian pick."))
+    fake.replies.append(reply_json([1], summary="One Italian pick."))  # r6, the only candidate
     resp = client.post("/recommend", json=EXAMPLE)
     assert resp.status_code == 200
     body = strict_json(resp.text)
@@ -48,7 +48,7 @@ def test_example_body_returns_documented_shape(client, fake):
     assert [set(item) for item in body["recommendations"]] == [ITEM_KEYS]
     assert body["recommendations"][0] == {
         "rank": 1, "id": "r6", "name": "Mid Italian", "cuisine": ["Italian", "Pizza"], "rating": 4.0,
-        "estimated_cost": 450, "explanation": "Explanation for r6.", "explanation_source": "llm",
+        "estimated_cost": 450, "explanation": "Explanation for 1.", "explanation_source": "llm",
     }
     assert body["summary"] == "One Italian pick." and body["llm_fallback"] is False
     assert body["message"] == "Only 1 restaurant matched."
@@ -71,7 +71,7 @@ def test_no_match_returns_empty_list_without_calling_llm(client, fake):
 
 
 def test_unknown_fields_are_ignored(client, fake):
-    fake.replies.append(reply_json(["r6"]))
+    fake.replies.append(reply_json([1]))
     assert client.post("/recommend", json={**EXAMPLE, "debug": True}).status_code == 200
 
 

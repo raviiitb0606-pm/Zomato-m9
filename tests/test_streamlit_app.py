@@ -86,7 +86,7 @@ def test_meta_failure_shows_error_and_no_form(api):
 # --- results -----------------------------------------------------------------
 
 def test_normal_search_shows_summary_and_every_card_field(api, fake):
-    fake.replies.append(reply_json(["r1", "r7", "r3"], summary="Three good picks."))
+    fake.replies.append(reply_json([1, 2, 3], summary="Three good picks."))
     at = search(page())
     assert not at.exception and not at.error
     out = text(at)
@@ -94,7 +94,7 @@ def test_normal_search_shows_summary_and_every_card_field(api, fake):
     assert "**1\\. Popular**" in out
     assert "**Cuisine:** North Indian, Chinese" in out
     assert "**Rating:** 4.5 / 5" in out and "**Estimated cost for two:** ₹400" in out
-    assert "Explanation for r1\\." in out
+    assert "Explanation for 1\\." in out
     assert [m.value[:6] for m in at.markdown if m.value.startswith("**")
             and m.value[2:3].isdigit()] == [f"**{i}\\. " for i in range(1, 6)]  # 3 picks, topped up to top_k
     assert at.button[0].disabled is False  # usable again after the search
@@ -110,7 +110,7 @@ def test_null_rating_and_cost_are_spelled_out(api, fake):
 
 
 def test_relaxation_is_stated_above_results(api, fake):
-    fake.replies.append(reply_json(["r6"]))
+    fake.replies.append(reply_json([1]))
     at = search(page(), location="Indiranagar", budget="High", cuisine=["Pizza"], min_rating=4.3)
     assert "minimum rating lowered from 4\\.3 to 3\\.8" in at.warning[0].value
     assert "budget widened from high to high or medium" in at.warning[0].value
@@ -131,7 +131,7 @@ def test_fallback_says_descriptions_are_generic(api, fake):
 
 @pytest.mark.parametrize("seconds_since_last,calls", [(0.2, 1), (10, 2)])
 def test_click_right_after_a_search_is_dropped(api, fake, seconds_since_last, calls):
-    fake.replies.extend([reply_json(["r1", "r7", "r3"]), reply_json(["r2"])])
+    fake.replies.extend([reply_json([1, 2, 3]), reply_json([1])])
     at = search(page())
     # A double-click's second click is processed just after the first search ends.
     at.session_state["search_ended_at"] = time.monotonic() - seconds_since_last
@@ -150,7 +150,7 @@ def test_api_down_at_search_keeps_the_form(api):
 
 
 def test_new_search_error_clears_old_results(api, fake):
-    fake.replies.append(reply_json(["r1", "r7", "r3"]))
+    fake.replies.append(reply_json([1, 2, 3]))
     at = search(page())
     api["up"] = False
     at.session_state["search_ended_at"] = time.monotonic() - 10  # a real pause between searches

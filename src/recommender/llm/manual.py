@@ -10,7 +10,8 @@ from recommender.config import get_settings
 from recommender.llm.base import LLMError
 from recommender.llm.groq_client import GroqClient
 from recommender.prompt import (
-    PROMPT_VERSION, RESPONSE_SCHEMA, SYSTEM_PROMPT, ReplyError, build_user_prompt, parse_reply, pick_count,
+    PROMPT_VERSION, RESPONSE_SCHEMA, SYSTEM_PROMPT, ReplyError, build_user_prompt, candidate_keys, completion_budget,
+    parse_reply, pick_count,
 )
 from recommender.schemas import Preferences
 from recommender.store import RestaurantStore
@@ -32,7 +33,7 @@ GROUNDING = ("casual dining", "fine dining", "tag")  # claim cites the data it r
 def quality_checks(reply, by_id) -> dict[str, bool]:
     summary = reply.summary.lower()
     drinks = [(rank, item) for rank, item in enumerate(reply.ranking, 1)
-              if DRINKS_TAGS & set(by_id[item.id].tags)]
+              if DRINKS_TAGS & set(by_id[str(item.id)].tags)]
     sentences = [s for text in [reply.summary] + [i.explanation for i in reply.ranking]
                  for s in text.replace("!", ".").split(". ")]
     unhedged = [s for s in sentences
@@ -45,7 +46,7 @@ def quality_checks(reply, by_id) -> dict[str, bool]:
         "summary addresses family-friendly": "family" in summary,
         # The name is removed first: "Brooks and Bonds Brewery" doesn't count as citing a tag.
         "every drinks-focused pick cites its drinks tag": all(
-            any(w in item.explanation.lower().replace(by_id[item.id].name.lower(), "") for w in DRINKS_WORDS)
+            any(w in item.explanation.lower().replace(by_id[str(item.id)].name.lower(), "") for w in DRINKS_WORDS)
             for _, item in drinks),
         "no un-hedged ambience/vibe claims": not unhedged,
     }
@@ -60,12 +61,13 @@ def main() -> int:
 
     client = GroqClient.from_settings(settings)
     try:
-        text = client.complete(SYSTEM_PROMPT, user, RESPONSE_SCHEMA)
+        budget = completion_budget(pick_count(PREFS.top_k, candidates))
+        text = client.complete(SYSTEM_PROMPT, user, RESPONSE_SCHEMA, budget)
     except LLMError as exc:
         print(f"FAILED: {exc}")
         return 1
 
-    by_id = {r.id: r for r in candidates}
+    by_id = candidate_keys(candidates)  # the prompt's candidate numbers
     try:
         reply = parse_reply(text)
     except ReplyError as exc:
@@ -73,13 +75,13 @@ def main() -> int:
         return 1
 
     for rank, item in enumerate(reply.ranking, 1):
-        r = by_id.get(item.id)
+        r = by_id.get(str(item.id))
         facts = (f"{r.name} | {', '.join(r.cuisines)} | rating {r.rating} ({r.votes} votes) | "
                  f"₹{r.cost_for_two} for two | {r.locality} | tags: {', '.join(r.tags)}") if r else "NOT IN SHORTLIST"
         print(f"{rank}. [{item.id}] {facts}\n   -> {item.explanation}\n")
     print(f"Summary: {reply.summary}\n")
 
-    ids = [item.id for item in reply.ranking]
+    ids = [str(item.id) for item in reply.ranking]
     want = pick_count(PREFS.top_k, candidates)
     checks = {
         "valid JSON in the expected shape": True,
@@ -95,11 +97,11 @@ def main() -> int:
             print(f"{'PASS' if ok else 'FAIL'}  {name}")
 
     u = client.last_usage
-    reserved = u.prompt_tokens + settings.llm_max_completion_tokens
+    reserved = u.prompt_tokens + budget
     print(f"\nLatency {client.last_latency_s:.2f}s | tokens: prompt {u.prompt_tokens}, "
           f"completion {u.completion_tokens}")
     print(f"Counted against the {TPM_LIMIT} tokens/min limit: about {reserved} per request "
-          f"(prompt + max_completion_tokens {settings.llm_max_completion_tokens}) "
+          f"(prompt + max_completion_tokens {budget}) "
           f"-> roughly {TPM_LIMIT // reserved} requests/min at this shortlist size")
     return 0 if all(checks.values()) else 1
 

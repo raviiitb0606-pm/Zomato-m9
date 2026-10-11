@@ -10,7 +10,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "integer"
           },
           "explanation": {
             "type": "string"

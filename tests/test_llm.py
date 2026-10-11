@@ -34,6 +34,13 @@ def client(model="openai/gpt-oss-20b", **sdk_kw):
     return GroqClient("gsk_test", model, reasoning_effort="low", max_completion_tokens=900, client=sdk), calls
 
 
+@pytest.mark.parametrize("asked,sent", [(None, 900), (650, 650), (5000, 900)])
+def test_call_cap_never_exceeds_the_configured_one(asked, sent):
+    c, calls = client()
+    c.complete("S", "U", {}, max_tokens=asked)
+    assert calls[0]["max_completion_tokens"] == sent
+
+
 def test_gpt_oss_gets_strict_schema_and_reasoning_controls():
     c, calls = client()
     c.complete("SYS", "USER", RESPONSE_SCHEMA)

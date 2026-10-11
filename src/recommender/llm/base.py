@@ -12,6 +12,8 @@ class MalformedReplyError(LLMError):
 
 
 class LLMClient(Protocol):
-    def complete(self, system: str, user: str, response_schema: dict) -> str:
-        """Return the model's raw text reply. Raise LLMError on failure."""
+    def complete(self, system: str, user: str, response_schema: dict, max_tokens: int | None = None) -> str:
+        """Return the model's raw text reply. Raise LLMError on failure.
+
+        `max_tokens` caps the reply; None means the client's own limit."""
         ...

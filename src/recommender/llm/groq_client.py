@@ -69,13 +69,15 @@ class GroqClient:
         # Other models only get JSON mode; the prompt asks for the shape and the parser checks it.
         return {"response_format": {"type": "json_object"}}
 
-    def complete(self, system: str, user: str, response_schema: dict) -> str:
+    def complete(self, system: str, user: str, response_schema: dict, max_tokens: int | None = None) -> str:
+        # The configured cap is a ceiling: a call may ask for less, never more.
+        cap = min(max_tokens or self.max_completion_tokens, self.max_completion_tokens)
         start = time.perf_counter()
         try:
             resp = self._client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-                max_completion_tokens=self.max_completion_tokens,
+                max_completion_tokens=cap,
                 **self._format_options(response_schema),
             )
         except groq.APIError as exc:
