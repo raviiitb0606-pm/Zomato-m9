@@ -64,6 +64,12 @@ def test_rejects_bad_values(field, value):
         make(**{field: value})
 
 
+@pytest.mark.parametrize("blank", ["", "   "])
+def test_blank_api_key_counts_as_missing(monkeypatch, blank):
+    monkeypatch.setenv("LLM_API_KEY", blank)
+    assert make().llm_api_key is None
+
+
 def test_api_key_hidden_in_repr():
     s = make(llm_api_key="gsk_secret-value")
     assert "gsk_secret-value" not in repr(s)

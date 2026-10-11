@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     shortlist_size: int = Field(20, ge=1, le=50, validation_alias=AliasChoices("CANDIDATE_CAP", "SHORTLIST_SIZE"))
     data_dir: Path = PROJECT_ROOT / "data"
 
+    @field_validator("llm_api_key", mode="before")
+    @classmethod
+    def _blank_key_is_missing(cls, v):
+        # `LLM_API_KEY=` copied unchanged from .env.example must fail the startup check.
+        return None if isinstance(v, str) and not v.strip() else v
+
     @field_validator("data_dir")
     @classmethod
     def _resolve_data_dir(cls, v: Path) -> Path:
