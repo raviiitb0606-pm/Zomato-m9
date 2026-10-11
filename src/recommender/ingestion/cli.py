@@ -12,9 +12,7 @@ import pandas as pd
 from recommender.config import get_settings
 from recommender.ingestion.clean import CleanReport, clean
 from recommender.ingestion.load import DATASET_ID, load_raw
-
-PARQUET_NAME = "restaurants.parquet"
-META_NAME = "meta.json"
+from recommender.store import META_NAME, PARQUET_NAME
 
 
 def build_meta(df: pd.DataFrame, thresholds: tuple[int, int]) -> dict:
