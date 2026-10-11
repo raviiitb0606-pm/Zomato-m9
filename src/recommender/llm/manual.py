@@ -21,6 +21,35 @@ PREFS = Preferences(location="Koramangala", budget="high", cuisine=["Italian", "
 SHORTLIST_SIZE = 10
 TPM_LIMIT = 8000  # Groq tokens/minute seen on this account (x-ratelimit-limit-tokens)
 
+# Heuristics for this fixed case (prompt v1 failed all of them).
+DRINKS_TAGS = {"pub", "bar", "microbrewery", "lounge", "drinks & nightlife", "pubs and bars"}
+DRINKS_WORDS = ("pub", "bar", "brew", "drink", "nightlife", "lounge")
+UNSUPPORTED_WORDS = ("vibe", "ambience", "ambiance", "atmosphere", "cozy", "cosy", "quiet", "romantic", "relaxed")
+HEDGES = ("not ", "n't", "cannot", "no data", "unclear", "unknown", "doesn't", "does not")
+GROUNDING = ("casual dining", "fine dining", "tag")  # claim cites the data it rests on
+
+
+def quality_checks(reply, by_id) -> dict[str, bool]:
+    summary = reply.summary.lower()
+    drinks = [(rank, item) for rank, item in enumerate(reply.ranking, 1)
+              if DRINKS_TAGS & set(by_id[item.id].tags)]
+    sentences = [s for text in [reply.summary] + [i.explanation for i in reply.ranking]
+                 for s in text.replace("!", ".").split(". ")]
+    unhedged = [s for s in sentences
+                if any(w in s.lower() for w in UNSUPPORTED_WORDS)
+                and not any(h in s.lower() for h in HEDGES + GROUNDING)]
+    print(f"Drinks-focused picks at ranks: {[rank for rank, _ in drinks] or 'none'}")
+    for s in unhedged:
+        print(f"Un-hedged claim: {s.strip()}")
+    return {
+        "summary addresses family-friendly": "family" in summary,
+        # The name is removed first: "Brooks and Bonds Brewery" doesn't count as citing a tag.
+        "every drinks-focused pick cites its drinks tag": all(
+            any(w in item.explanation.lower().replace(by_id[item.id].name.lower(), "") for w in DRINKS_WORDS)
+            for _, item in drinks),
+        "no un-hedged ambience/vibe claims": not unhedged,
+    }
+
 
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -60,6 +89,10 @@ def main() -> int:
     }
     for name, ok in checks.items():
         print(f"{'PASS' if ok else 'FAIL'}  {name}")
+    if checks["only shortlist ids"]:
+        print("\nQuality (heuristic, for this fixed case):")
+        for name, ok in quality_checks(reply, by_id).items():
+            print(f"{'PASS' if ok else 'FAIL'}  {name}")
 
     u = client.last_usage
     reserved = u.prompt_tokens + settings.llm_max_completion_tokens
