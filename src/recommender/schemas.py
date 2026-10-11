@@ -81,6 +81,9 @@ class Recommendation(BaseModel):
     rating: float | None
     estimated_cost: int | None
     explanation: str
+    # "template" when the model gave no usable explanation for this item, so the UI
+    # never presents generated boilerplate as AI reasoning.
+    explanation_source: Literal["llm", "template"] = "llm"
 
 
 class RecommendationResponse(BaseModel):
