@@ -7,6 +7,10 @@ class LLMError(RuntimeError):
     """The model call failed, or returned nothing usable."""
 
 
+class MalformedReplyError(LLMError):
+    """The provider rejected the model's reply for not matching the schema. Worth one retry."""
+
+
 class LLMClient(Protocol):
     def complete(self, system: str, user: str, response_schema: dict) -> str:
         """Return the model's raw text reply. Raise LLMError on failure."""

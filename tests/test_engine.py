@@ -7,7 +7,7 @@ from recommender.config import Settings
 from recommender.engine import (
     FALLBACK_SUMMARY, MAX_EXPLANATION_CHARS, Engine, main, template_explanation,
 )
-from recommender.llm.base import LLMError
+from recommender.llm.base import LLMError, MalformedReplyError
 from recommender.llm.fake import FakeLLMClient, reply_json
 from recommender.schemas import Preferences
 
@@ -88,6 +88,18 @@ def test_malformed_twice_falls_back_to_preranking(store):
     assert resp.llm_fallback is True and resp.summary == FALLBACK_SUMMARY
     assert {r.explanation_source for r in resp.recommendations} == {"template"}
     assert len(fake.calls) == 2
+
+
+def test_provider_schema_rejection_gets_the_retry(store):
+    eng, fake = engine(store, MalformedReplyError("did not match the JSON schema"), reply_json(["r2", "r1", "r3"]))
+    resp = eng.recommend(BTM)
+    assert ids(resp) == ["r2", "r1", "r3"] and resp.llm_fallback is False
+    assert len(fake.calls) == 2 and "did not match the JSON schema" in fake.calls[1]["user"]
+
+
+def test_provider_schema_rejection_twice_falls_back(store):
+    eng, fake = engine(store, MalformedReplyError("a"), MalformedReplyError("b"))
+    assert eng.recommend(BTM).llm_fallback is True and len(fake.calls) == 2
 
 
 def test_retry_prompt_stays_short(store):

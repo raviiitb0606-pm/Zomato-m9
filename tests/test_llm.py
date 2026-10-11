@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from recommender.config import Settings
-from recommender.llm.base import LLMError
+from recommender.llm.base import LLMError, MalformedReplyError
 from recommender.llm.fake import FakeLLMClient, reply_json
 from recommender.llm.groq_client import GroqClient
 from recommender.prompt import RESPONSE_SCHEMA
@@ -88,6 +88,25 @@ def test_sdk_errors_become_llm_errors(exc):
     with pytest.raises(LLMError) as info:
         c.complete("S", "U", {})
     assert info.value.__cause__ is exc
+
+
+def bad_request(code):
+    body = {"error": {"message": "x", "type": "invalid_request_error", "code": code, "failed_generation": ""}}
+    return groq.BadRequestError("400", response=httpx.Response(400, request=REQUEST), body=body)
+
+
+@pytest.mark.parametrize("code", ["json_validate_failed", "output_parse_failed"])
+def test_unusable_reply_is_a_malformed_reply(code):
+    c, _ = client(exc=bad_request(code))
+    with pytest.raises(MalformedReplyError):
+        c.complete("S", "U", {})
+
+
+def test_other_bad_requests_are_plain_llm_errors():
+    c, _ = client(exc=bad_request("model_not_found"))
+    with pytest.raises(LLMError) as info:
+        c.complete("S", "U", {})
+    assert not isinstance(info.value, MalformedReplyError)
 
 
 def test_real_sdk_configured_with_one_retry_and_timeout():

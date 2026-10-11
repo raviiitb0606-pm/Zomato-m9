@@ -9,7 +9,7 @@ import sys
 import time
 
 from recommender.config import Settings, get_settings
-from recommender.llm.base import LLMClient, LLMError
+from recommender.llm.base import LLMClient, LLMError, MalformedReplyError
 from recommender.prompt import (
     RESPONSE_SCHEMA, SYSTEM_PROMPT, LLMReply, ReplyError, build_user_prompt, parse_reply, pick_count,
 )
@@ -47,7 +47,7 @@ def _trim(text: str) -> str:
     return cut[:end + 1] if end > 0 else cut.rstrip() + "…"
 
 
-def _retry_prompt(user: str, error: ReplyError) -> str:
+def _retry_prompt(user: str, error: Exception) -> str:
     reason = str(error)[:200]
     return (f"{user}\n\nYour previous reply could not be used ({reason}). "
             "Reply again with JSON only, in the required shape.")
@@ -73,12 +73,12 @@ class Engine:
         user = build_user_prompt(prefs, candidates)
         try:
             return parse_reply(self.llm.complete(SYSTEM_PROMPT, user, RESPONSE_SCHEMA))
+        except (ReplyError, MalformedReplyError) as exc:
+            log.warning("llm reply malformed, retrying once: %s", exc)
+            retry_user = _retry_prompt(user, exc)
         except LLMError as exc:
             log.warning("llm failed, using fallback: %s", exc)
             return None
-        except ReplyError as exc:
-            log.warning("llm reply malformed, retrying once: %s", exc)
-            retry_user = _retry_prompt(user, exc)
         try:
             return parse_reply(self.llm.complete(SYSTEM_PROMPT, retry_user, RESPONSE_SCHEMA))
         except (LLMError, ReplyError) as exc:

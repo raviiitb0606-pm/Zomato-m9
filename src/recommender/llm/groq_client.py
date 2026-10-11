@@ -7,12 +7,20 @@ import groq
 from groq import Groq
 
 from recommender.config import Settings, get_settings
-from recommender.llm.base import LLMError
+from recommender.llm.base import LLMError, MalformedReplyError
 
 log = logging.getLogger(__name__)
 
 # On Groq these support strict structured outputs and reasoning controls.
 STRICT_JSON_PREFIX = "openai/gpt-oss-"
+# 400 codes Groq returns instead of a reply that isn't valid JSON or doesn't match the schema.
+UNUSABLE_REPLY_CODES = {"json_validate_failed", "output_parse_failed"}
+
+
+def _is_unusable_reply(exc: groq.APIError) -> bool:
+    body = exc.body if isinstance(exc, groq.BadRequestError) else None
+    error = body.get("error") if isinstance(body, dict) else None
+    return isinstance(error, dict) and error.get("code") in UNUSABLE_REPLY_CODES
 
 
 class GroqClient:
@@ -71,6 +79,8 @@ class GroqClient:
                 **self._format_options(response_schema),
             )
         except groq.APIError as exc:
+            if _is_unusable_reply(exc):
+                raise MalformedReplyError("Groq rejected the reply: it was not JSON in the required shape") from exc
             raise LLMError(f"Groq call failed: {type(exc).__name__}: {exc}") from exc
         self.last_latency_s = time.perf_counter() - start
 
