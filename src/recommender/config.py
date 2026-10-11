@@ -2,8 +2,9 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # src/recommender/config.py -> project root. Paths resolve from here, not the cwd.
@@ -15,14 +16,22 @@ class Settings(BaseSettings):
         env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
         extra="ignore",  # .env may hold vars for other parts (e.g. the UI)
+        populate_by_name=True,
     )
 
+    # Groq. The first env name in each AliasChoices is the one .env.example uses.
     # Optional here so tests and ingestion run without a key; the API checks it at startup.
-    anthropic_api_key: SecretStr | None = None
-    llm_model: str = "claude-opus-5-5"
-    shortlist_size: int = Field(20, ge=1, le=50)
+    llm_api_key: SecretStr | None = Field(None, validation_alias=AliasChoices("LLM_API_KEY", "GROQ_API_KEY"))
+    llm_model: str = "openai/gpt-oss-20b"
+    llm_timeout_s: float = Field(
+        30.0, gt=0, le=120, validation_alias=AliasChoices("LLM_TIMEOUT_SECONDS", "LLM_TIMEOUT_S")
+    )
+    llm_reasoning_effort: Literal["low", "medium", "high"] = "low"
+    # Groq counts this whole cap against the tokens-per-minute limit, used or not.
+    llm_max_completion_tokens: int = Field(1024, ge=64, le=8192)
+
+    shortlist_size: int = Field(20, ge=1, le=50, validation_alias=AliasChoices("CANDIDATE_CAP", "SHORTLIST_SIZE"))
     data_dir: Path = PROJECT_ROOT / "data"
-    llm_timeout_s: float = Field(30.0, gt=0, le=120)
 
     @field_validator("data_dir")
     @classmethod
