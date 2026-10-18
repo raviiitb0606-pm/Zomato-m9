@@ -153,6 +153,45 @@ def test_docs_page_is_served(client):
     assert "/recommend" in client.get("/openapi.json").json()["paths"]
 
 
+# --- rate limit ----------------------------------------------------------------
+
+@pytest.fixture
+def limited(store, fake):
+    app = create_app(engine=Engine(store, fake), settings=settings(rate_limit_per_minute=2, rate_limit_per_day=0))
+    with TestClient(app) as c:
+        yield c
+
+
+def test_third_search_in_a_minute_gets_429(limited, fake):
+    fake.replies.extend([LLMError("x"), LLMError("x")])
+    for _ in range(2):
+        assert limited.post("/recommend", json={"location": "BTM"}).status_code == 200
+    resp = limited.post("/recommend", json={"location": "BTM"})
+    assert resp.status_code == 429 and resp.json() == {"detail": "Too many searches. Try again in a minute."}
+    assert 1 <= int(resp.headers["retry-after"]) <= 60
+    assert len(fake.calls) == 2  # the refused search never reached the engine
+
+
+def test_limits_are_per_visitor(limited, fake):
+    fake.replies.extend([LLMError("x")] * 3)
+    for ip in ("1.1.1.1", "1.1.1.1", "2.2.2.2"):
+        assert limited.post("/recommend", json={"location": "BTM"}, headers={"x-real-ip": ip}).status_code == 200
+    assert limited.post("/recommend", json={"location": "BTM"}, headers={"x-real-ip": "1.1.1.1"}).status_code == 429
+
+
+def test_invalid_input_and_other_routes_are_not_counted(limited, fake):
+    for _ in range(3):
+        assert limited.post("/recommend", json={"location": ""}).status_code == 422
+        assert limited.get("/meta").status_code == 200
+    fake.replies.append(LLMError("x"))
+    assert limited.post("/recommend", json={"location": "BTM"}).status_code == 200
+
+
+def test_zero_limits_turn_the_limiter_off(store, fake):
+    app = create_app(engine=Engine(store, fake), settings=settings(rate_limit_per_minute=0, rate_limit_per_day=0))
+    assert app.state.limiter is None
+
+
 # --- origin secret -----------------------------------------------------------
 
 SECRET = "s3cret-value"

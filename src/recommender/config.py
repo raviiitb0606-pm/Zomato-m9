@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     # An upper limit only: each call asks for what its reply needs (prompt.completion_budget).
     llm_max_completion_tokens: int = Field(1280, ge=64, le=8192)
 
+    # Searches per visitor (by IP) on /recommend; past them the API answers 429. 0 = no limit.
+    rate_limit_per_minute: int = Field(5, ge=0)
+    rate_limit_per_day: int = Field(60, ge=0)
+
     # Calls to the LLM allowed per minute and per UTC day, across all users; past them,
     # searches get the pre-ranked fallback. 0 = no cap. See llm/budget.py for the sizing.
     llm_calls_per_minute: int = Field(3, ge=0)

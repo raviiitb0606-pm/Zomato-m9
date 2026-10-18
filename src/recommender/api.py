@@ -11,7 +11,7 @@ import hmac
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, FastAPI, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from recommender.config import Settings, get_settings
 from recommender.engine import Engine
 from recommender.llm.base import LLMError
+from recommender.ratelimit import Limited, RateLimiter, client_key
 from recommender.schemas import Meta, Preferences, RecommendationResponse
 from recommender.store import DataNotFoundError
 
@@ -42,7 +43,13 @@ def get_engine(request: Request) -> Engine:
 # Sync on purpose: FastAPI runs it in a thread pool, so a slow LLM call
 # doesn't block /health (SRV-07).
 @router.post("/recommend")
-def recommend(prefs: Preferences, engine: Engine = Depends(get_engine)) -> RecommendationResponse:
+def recommend(prefs: Preferences, request: Request, engine: Engine = Depends(get_engine)) -> RecommendationResponse:
+    # The body is validated before this runs, so rejected input doesn't count against the visitor.
+    if (limiter := request.app.state.limiter) is not None:
+        try:
+            limiter.hit(client_key(request))
+        except Limited as exc:
+            raise HTTPException(429, str(exc), headers={"Retry-After": str(exc.retry_after)}) from None
     return engine.recommend(prefs)
 
 
@@ -111,6 +118,8 @@ def create_app(engine: Engine | None = None, settings: Settings | None = None) -
     docs = {} if secret is None else {"docs_url": None, "redoc_url": None, "openapi_url": None}
     app = FastAPI(title="Restaurant Recommender", version="0.1.0", lifespan=lifespan, **docs)
     app.include_router(router)
+    per_minute, per_day = settings.rate_limit_per_minute, settings.rate_limit_per_day
+    app.state.limiter = RateLimiter(per_minute, per_day) if per_minute or per_day else None
     # web/static is also what Vercel serves at /static, so the page works on both.
     app.mount("/static", StaticFiles(directory=WEB_DIR / "static"), name="static")
     app.middleware("http")(_body_size_limit)

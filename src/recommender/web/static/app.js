@@ -69,6 +69,10 @@ async function callApi(path, options = {}) {
     const msgs = (body.detail || []).map((e) => e.msg).filter(Boolean);
     throw new ApiError(`The server rejected the search: ${msgs.join("; ") || "invalid input"}.`);
   }
+  if (resp.status === 429) {
+    const body = await resp.json().catch(() => ({}));
+    throw new ApiError(body.detail || "Too many searches. Try again in a minute.");
+  }
   if (!resp.ok) throw new ApiError(`The server had a problem (HTTP ${resp.status}). Try again.`);
   return resp.json();
 }

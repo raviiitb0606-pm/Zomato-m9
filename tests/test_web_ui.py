@@ -210,6 +210,13 @@ def test_server_error_shows_banner_and_retry_recovers(page, fake):
     assert page.locator(".card").count() == 5
 
 
+def test_rate_limit_message_is_shown(page):
+    page.route("**/recommend", lambda route: route.fulfill(
+        status=429, content_type="application/json", body='{"detail": "Too many searches. Try again in a minute."}'))
+    search(page)
+    assert page.inner_text(".banner.error").startswith("Too many searches. Try again in a minute.")
+
+
 def test_unreachable_server_shows_banner_and_keeps_the_form(page):
     page.route("**/recommend", lambda route: route.abort())
     search(page, location="Indiranagar", budget="high", extras="rooftop")
