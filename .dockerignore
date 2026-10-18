@@ -1,0 +1,15 @@
+# Only pyproject.toml, src/ and the two data files go into the image.
+.git
+.venv
+.env
+.env.*
+!.env.example
+.pytest_cache
+**/__pycache__
+**/*.egg-info
+course/
+docs/
+tests/
+app/
+output/
+node_modules/
