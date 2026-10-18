@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"primary-fixed":"#ffddb5","on-surface-variant":"#d7c3ae","surface-bright":"#363941","on-secondary-container":"#8cb6fb","inverse-primary":"#835400","primary-container":"#f5a524","tertiary-fixed":"#a9f3bc","on-tertiary-container":"#00522a","on-primary":"#462b00","secondary-container":"#114784","on-secondary-fixed":"#001b3c","on-surface":"#e0e2ec","inverse-on-surface":"#2d3038","error":"#ffb4ab","secondary":"#a8c8ff","on-error-container":"#ffdad6","inverse-surface":"#e0e2ec","on-secondary":"#003061","on-tertiary-fixed-variant":"#00522a","on-primary-fixed":"#2a1800","outline-variant":"#524434","secondary-fixed":"#d5e3ff","tertiary-container":"#7dc591","primary-fixed-dim":"#ffb957","on-background":"#e0e2ec","surface-container-highest":"#32353c","on-secondary-fixed-variant":"#114784","on-tertiary-fixed":"#00210e","surface-container-high":"#272a31","surface-dim":"#10131a","surface-container-lowest":"#0b0e15","primary":"#ffc77f","on-primary-container":"#643f00","surface-container-low":"#191c23","tertiary":"#98e1ab","on-tertiary":"#00391b","background":"#10131a","surface-container":"#1d2027","on-error":"#690005","surface-variant":"#32353c","surface-tint":"#ffb957","secondary-fixed-dim":"#a8c8ff","surface":"#10131a","error-container":"#93000a","tertiary-fixed-dim":"#8ed7a1","on-primary-fixed-variant":"#643f00","outline":"#9f8e7a"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-xl":"1.5rem","gutter-mobile":"1rem","space-lg":"1rem","margin-mobile":"1rem","gutter":"1.5rem","space-sm":"0.5rem","space-xs":"0.25rem","space-md":"0.75rem","margin":"2rem"},"fontFamily":{"headline-lg":["Inter"],"label-md":["Inter"],"headline-xl":["Inter"],"body-sm":["Inter"],"headline-xl-mobile":["Inter"],"label-sm":["Inter"],"headline-sm":["Inter"],"body-lg":["Inter"],"body-md":["Inter"]},"fontSize":{"headline-lg":["24px",{"lineHeight":"32px","fontWeight":"600"}],"label-md":["13px",{"lineHeight":"18px","fontWeight":"500"}],"headline-xl":["36px",{"lineHeight":"44px","fontWeight":"600"}],"body-sm":["12px",{"lineHeight":"16px","fontWeight":"400"}],"headline-xl-mobile":["28px",{"lineHeight":"36px","fontWeight":"600"}],"label-sm":["11px",{"lineHeight":"14px","fontWeight":"600"}],"headline-sm":["18px",{"lineHeight":"24px","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}]}}}}</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl"><div class="h-16 max-w-[1280px] mx-auto px-margin flex items-center justify-between"><div class="flex items-center gap-space-md"><div class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center"><span class="font-headline-sm text-headline-sm text-primary-container tracking-tight">RF</span></div><div class="flex flex-col"><div class="flex items-center gap-space-sm"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Restaurant Finder</span><span class="px-space-xs py-[2px] bg-surface-container rounded font-label-sm text-label-sm text-primary">BLR</span></div><p class="font-body-sm text-body-sm text-on-surface-variant hidden sm:block">Zomato restaurants in Bangalore, ranked and explained by AI</p></div></div><div class="flex items-center gap-space-md"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 bg-surface"><div class="flex flex-col w-full">
+<div class="max-w-[1280px] w-full mx-auto px-margin py-space-xl">
+<!-- Top Context & Analytics Strip -->
+<div class="flex items-center justify-between pb-space-lg mb-space-lg bg-surface-container-low px-space-lg py-space-md rounded-xl">
+<div class="flex items-center gap-space-md">
+<span class="flex h-2.5 w-2.5 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-md text-label-md text-on-surface">Synthesizing 12,480 Bangalore venues across 42 micro-zones</span>
+</div>
+<div class="flex items-center gap-space-sm font-label-sm text-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">sync_alt</span>
+<span>Query latency: 18ms</span>
+</div>
+</div>
+<!-- 12-Column Responsive Desktop Grid -->
+<div class="grid grid-cols-12 gap-gutter items-start">
+<!-- Left Column: Sticky Analytical Filter Panel (~360px on desktop) -->
+<aside class="col-span-12 lg:col-span-4 sticky top-20 flex flex-col gap-space-lg">
+<div class="bg-surface-container rounded-xl p-space-lg shadow-sm flex flex-col gap-space-lg">
+<!-- Filter Header -->
+<div class="flex items-center justify-between pb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">tune</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Search Filters</h2>
+</div>
+<button class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors" id="reset-filters-btn">
+              Reset all
+            </button>
+</div>
+<!-- Section 1: Locality Selection -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Location Context</label>
+<div class="relative flex items-center bg-surface-container-high rounded-lg px-space-md py-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px] mr-space-sm">near_me</span>
+<input class="bg-transparent w-full text-on-surface font-body-md text-body-md focus:outline-none cursor-default" readonly="" type="text" value="Bangalore (all areas)"/>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">expand_more</span>
+</div>
+</div>
+<!-- Section 2: Budget Segmented Control -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Target Budget per Person</label>
+<div class="grid grid-cols-3 bg-surface-container-high p-[4px] rounded-lg gap-1">
+<button class="py-1.5 rounded text-center font-label-sm text-label-sm text-on-surface-variant transition-colors hover:text-on-surface">
+                &lt; ₹300
+              </button>
+<button class="py-1.5 rounded bg-primary-container text-on-primary font-label-sm text-label-sm shadow-sm font-semibold">
+                ₹301–500
+              </button>
+<button class="py-1.5 rounded text-center font-label-sm text-label-sm text-on-surface-variant transition-colors hover:text-on-surface">
+                ₹500+
+              </button>
+</div>
+</div>
+<!-- Section 3: Cuisine Active Pills -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<label class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Selected Cuisines (4)</label>
+<span class="font-label-sm text-label-sm text-primary">Clear</span>
+</div>
+<div class="flex flex-wrap gap-space-xs pt-1">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container/10 text-primary font-label-sm text-label-sm">
+                Italian
+                <span class="material-symbols-outlined text-[14px] cursor-pointer hover:opacity-75">close</span>
+</span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container/10 text-primary font-label-sm text-label-sm">
+                Pizza
+                <span class="material-symbols-outlined text-[14px] cursor-pointer hover:opacity-75">close</span>
+</span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container/10 text-primary font-label-sm text-label-sm">
+                Chinese
+                <span class="material-symbols-outlined text-[14px] cursor-pointer hover:opacity-75">close</span>
+</span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container/10 text-primary font-label-sm text-label-sm">
+                North Indian
+                <span class="material-symbols-outlined text-[14px] cursor-pointer hover:opacity-75">close</span>
+</span>
+</div>
+</div>
+<!-- Section 4: Rating Slider -->
+<div class="flex flex-col gap-space-sm pt-space-xs">
+<div class="flex items-center justify-between">
+<label class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Minimum Aggregate Rating</label>
+<div class="flex items-center gap-1 bg-surface-container-highest px-2 py-0.5 rounded font-label-sm text-label-sm text-primary">
+<span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span id="rating-val">4.5</span>
+</div>
+</div>
+<div class="relative w-full flex items-center py-2">
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full" style="width: 88%;"></div>
+</div>
+<div class="absolute w-4 h-4 bg-primary-container rounded-full shadow-md cursor-pointer hover:scale-110 transition-transform" style="left: calc(88% - 8px);"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>3.0</span>
+<span>3.5</span>
+<span>4.0</span>
+<span>4.5</span>
+<span>5.0</span>
+</div>
+</div>
+<!-- Section 5: Specific Requests / Natural Language -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Anything else?</label>
+<div class="relative">
+<textarea class="w-full bg-surface-container-high rounded-lg p-space-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-0 resize-none" placeholder="Special requirements, dietary needs..." rows="2">quick service, delivery option</textarea>
+<span class="absolute bottom-2.5 right-2.5 material-symbols-outlined text-primary text-[16px]">arrow_back_ios_new</span>
+</div>
+</div>
+<!-- Primary Execute CTA -->
+<button class="w-full bg-primary-container text-on-primary py-space-sm px-space-md rounded-xl font-headline-sm text-headline-sm shadow-md hover:bg-primary-fixed-dim transition-colors flex items-center justify-center gap-space-sm">
+<span>Find restaurants</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+<!-- Micro AI Status -->
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm px-space-xs">
+<span>Filters active: 5 constraints</span>
+<span class="text-error">0 matches found</span>
+</div>
+</div>
+</aside>
+<!-- Right Column: Dedicated Clean Zero-Result Analytical Display -->
+<section class="col-span-12 lg:col-span-8 flex flex-col gap-space-lg">
+<!-- Active Filter Summary Bar -->
+<div class="bg-surface-container rounded-xl p-space-md flex flex-wrap items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Search active:</span>
+<div class="flex flex-wrap gap-space-xs">
+<span class="bg-surface-container-high px-2 py-1 rounded text-on-surface font-label-sm text-label-sm">₹301–500</span>
+<span class="bg-surface-container-high px-2 py-1 rounded text-on-surface font-label-sm text-label-sm">Rating ≥ 4.5★</span>
+<span class="bg-surface-container-high px-2 py-1 rounded text-on-surface font-label-sm text-label-sm">Italian, Pizza, Chinese, North Indian</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Showing 0 of 12,480</span>
+</div>
+<!-- The Empty State Card (Precision, High-End Typography & Architecture) -->
+<div class="bg-surface-container rounded-xl p-space-xl flex flex-col items-center justify-center text-center py-20 px-space-lg relative overflow-hidden shadow-sm">
+<!-- Subtle Structural Radial Glow -->
+<div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary-container/5 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Minimal Geometric Glyph Container -->
+<div class="relative w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center mb-space-lg">
+<span class="material-symbols-outlined text-primary text-[32px]">filter_alt_off</span>
+</div>
+<!-- Primary Heading -->
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight mb-space-sm max-w-lg">
+            No restaurants match these preferences.
+          </h1>
+<!-- Body / Analytical Guidance -->
+<p class="font-body-md text-body-md text-on-surface-variant max-w-lg mb-space-xl">
+            Try widening your budget range or lowering the minimum rating to explore more options across Bangalore.
+          </p>
+<!-- Action Cluster -->
+<div class="flex flex-col sm:flex-row items-center gap-space-md w-full max-w-sm justify-center mb-space-xl">
+<button class="w-full sm:w-auto bg-primary-container text-on-primary font-headline-sm text-headline-sm px-space-lg py-space-sm rounded-xl hover:bg-primary-fixed-dim transition-colors flex items-center justify-center gap-space-xs" id="widen-filters-btn">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+<span>Widen search filters</span>
+</button>
+<button class="w-full sm:w-auto bg-surface-container-high text-on-surface font-headline-sm text-headline-sm px-space-lg py-space-sm rounded-xl hover:bg-surface-container-highest transition-colors flex items-center justify-center gap-space-xs" id="quick-reset-btn">
+<span class="material-symbols-outlined text-[18px]">restart_alt</span>
+<span>Reset filters</span>
+</button>
+</div>
+<!-- Diagnostic Analytical Breakdown -->
+<div class="w-full max-w-xl bg-surface-container-low rounded-xl p-space-md text-left">
+<div class="flex items-center gap-space-xs pb-space-sm text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+<span class="material-symbols-outlined text-[16px] text-primary">analytics</span>
+<span>Constraint Friction Analysis</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-space-md text-left pt-space-xs">
+<div class="p-space-sm rounded bg-surface-container-high flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Rating Constraint</span>
+<span class="font-label-md text-label-md text-on-surface">≥ 4.5 Stars</span>
+<span class="font-body-sm text-body-sm text-primary">Eliminates 92% venues</span>
+</div>
+<div class="p-space-sm rounded bg-surface-container-high flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Budget Constraint</span>
+<span class="font-label-md text-label-md text-on-surface">₹301–500</span>
+<span class="font-body-sm text-body-sm text-primary">Filters to 18% venues</span>
+</div>
+<div class="p-space-sm rounded bg-surface-container-high flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Combined Match</span>
+<span class="font-label-md text-label-md text-on-surface">Intersection</span>
+<span class="font-body-sm text-body-sm text-error">0 venues qualified</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Recommended Fallback Exploration Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="bg-surface-container rounded-xl p-space-lg flex flex-col justify-between gap-space-md hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-surface-container-high group-hover:bg-primary-container/20 flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-primary text-[18px]">star_half</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Lower rating threshold</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Adjust to 4.0+ for 84 highly-rated options</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px]">chevron_right</span>
+</div>
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm text-primary">
+<span>Apply 4.0 threshold</span>
+</div>
+</div>
+<div class="bg-surface-container rounded-xl p-space-lg flex flex-col justify-between gap-space-md hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-surface-container-high group-hover:bg-primary-container/20 flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-primary text-[18px]">currency_rupee</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Expand price range</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Include &lt; ₹300 and ₹500+ for 142 venues</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[20px]">chevron_right</span>
+</div>
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm text-primary">
+<span>Broaden budget tier</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+<script>
+  // Micro-interaction for reset and widen actions
+  document.addEventListener('DOMContentLoaded', () => {
+    const widenBtn = document.getElementById('widen-filters-btn');
+    const resetBtns = [document.getElementById('quick-reset-btn'), document.getElementById('reset-filters-btn')];
+    
+    if (widenBtn) {
+      widenBtn.addEventListener('click', () => {
+        const ratingVal = document.getElementById('rating-val');
+        if (ratingVal) {
+          ratingVal.innerText = '4.0';
+          widenBtn.classList.add('opacity-75');
+          widenBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span><span>Filters Expanded</span>';
+          setTimeout(() => {
+            widenBtn.classList.remove('opacity-75');
+          }, 600);
+        }
+      });
+    }
+
+    resetBtns.forEach(btn => {
+      if (btn) {
+        btn.addEventListener('click', () => {
+          btn.classList.add('opacity-50');
+          setTimeout(() => {
+            btn.classList.remove('opacity-50');
+          }, 300);
+        });
+      }
+    });
+  });
+</script></main><footer class="w-full bg-surface-container-lowest mt-space-xl"><div class="max-w-[1280px] mx-auto px-margin py-space-xl flex flex-col sm:flex-row items-center justify-between gap-space-md font-body-sm text-body-sm text-on-surface-variant"><div>Bangalore Culinary Intelligence • AI synthesis of verified dining data</div><div class="font-label-sm text-label-sm text-on-surface-variant">Crafted for precision discovery</div></div></footer></body></html>
