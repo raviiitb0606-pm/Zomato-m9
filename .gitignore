@@ -18,3 +18,4 @@ __pycache__/
 # these out of any public repo.
 !/data/restaurants.parquet
 !/data/meta.json
+/build/

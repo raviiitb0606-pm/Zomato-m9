@@ -13,3 +13,4 @@ tests/
 app/
 output/
 node_modules/
+build/
