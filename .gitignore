@@ -13,3 +13,8 @@ __pycache__/
 # Generated data, root only (course/data/ is tracked course content)
 /data/*
 !/data/.gitkeep
+# The ingestion output ships with the code: the deploy image needs it, and rebuilding it
+# downloads the 574 MB source dataset. No licence is stated for that dataset, so keep
+# these out of any public repo.
+!/data/restaurants.parquet
+!/data/meta.json
