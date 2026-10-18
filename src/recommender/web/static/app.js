@@ -270,17 +270,39 @@ function card(rec, fallback) {
     why);
 }
 
-function resultsView(data) {
+// Results stay strict: only real matches. When a neighbourhood search finds fewer than
+// RESULT_COUNT, offer the same search across the whole city, where most find 10 or more.
+function widenOffer(prefs, found) {
+  const cities = state.meta.cities;
+  if (found >= RESULT_COUNT || cities.length !== 1 || cities.includes(prefs.location)) return null;
+  const city = cities[0];
+  const lead = found === 0
+    ? `Nothing in ${prefs.location} matches all your filters.`
+    : `Only ${found} restaurant${found === 1 ? "" : "s"} in ${prefs.location} match${found === 1 ? "es" : ""} all your filters.`;
+  const button = el("button", { type: "button", class: "btn-ghost", id: "widen-search" },
+    icon("pin", "ico-sm"), `Search all of ${city}`);
+  button.addEventListener("click", () => {
+    $("location").value = city;
+    search();
+  });
+  return el("div", { class: "panel widen" },
+    el("p", { class: "widen-text", text: `${lead} The same search across ${city} usually finds more.` }), button);
+}
+
+function resultsView(data, prefs) {
   const nodes = [];
   if (data.relaxed_constraints.length) {
     const changes = data.relaxed_constraints.map(describeRelaxation).join("; ");
     nodes.push(banner("warning", "warning", `Nothing matched exactly, so the search was loosened: ${changes}.`));
   }
+  const widen = widenOffer(prefs, data.recommendations.length);
   if (!data.recommendations.length) {
-    nodes.push(emptyView(data.message));
+    nodes.push(emptyView(data.message), widen);
     return nodes;
   }
-  if (data.message) nodes.push(el("p", { class: "note" }, icon("info", "ico-sm"), data.message));
+  // The offer says how many matched, so it replaces the API's "Only N matched" note.
+  if (widen) nodes.push(widen);
+  else if (data.message) nodes.push(el("p", { class: "note" }, icon("info", "ico-sm"), data.message));
   if (data.llm_fallback) {
     nodes.push(banner("info", "info",
       "AI ranking is unavailable right now, so these are sorted by rating and reviews, with standard descriptions."));
@@ -329,7 +351,7 @@ async function search() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(prefs),
     });
-    showResults(...resultsView(data));
+    showResults(...resultsView(data, prefs));
     if (data.recommendations.length) collapseForm(prefs);
   } catch (err) {
     if (!(err instanceof ApiError)) throw err;

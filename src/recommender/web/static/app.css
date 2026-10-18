@@ -147,6 +147,9 @@ textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent
 .banner.info { color: var(--info); background: rgba(138, 180, 248, 0.08); border-color: rgba(138, 180, 248, 0.3); }
 .banner.error { color: var(--error); background: rgba(242, 139, 130, 0.08); border-color: rgba(242, 139, 130, 0.35); align-items: center; }
 .banner.error .btn-ghost { color: var(--error); border-color: rgba(242, 139, 130, 0.4); flex: none; }
+.widen { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; }
+.widen-text { font-size: 14px; line-height: 21px; }
+.widen .btn-ghost { flex: none; color: var(--accent); border-color: var(--accent-line); }
 .note { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; padding: 0 4px; }
 
 .summary { display: flex; flex-direction: column; gap: 6px; }
@@ -212,4 +215,6 @@ textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent
   .card-stats { flex-direction: row; align-items: center; width: 100%; justify-content: flex-start; gap: 10px; }
   .brand-sub { display: none; }
   .seg-sub { font-size: 9px; }
+  .widen { flex-direction: column; align-items: stretch; }
+  .widen .btn-ghost { justify-content: center; }
 }

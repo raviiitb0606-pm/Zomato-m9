@@ -219,6 +219,37 @@ def test_page_asks_for_ten_results(page, fake):
     assert page.locator(".card").count() == 10  # the fixture city has 12 restaurants
 
 
+def test_few_neighbourhood_matches_offer_the_whole_city(page, fake):
+    fake.replies.extend([reply_json([1, 2, 3, 4, 5]), reply_json(list(range(1, 11)))])
+    search(page, location="BTM")  # BTM has 5 restaurants in the fixture
+    assert page.locator(".card").count() == 5
+    assert page.inner_text(".widen-text") == ("Only 5 restaurants in BTM match all your filters. "
+                                              "The same search across Bangalore usually finds more.")
+    assert page.locator(".note").count() == 0  # the offer replaces "Only 5 restaurants matched."
+    with page.expect_request("**/recommend") as req:
+        page.click("#widen-search")
+    page.wait_for_selector(".card:not(.skeleton)")
+    assert req.value.post_data_json["location"] == "Bangalore"
+    assert page.locator(".card").count() == 10 and page.locator(".widen").count() == 0
+    assert page.input_value("#location") == "Bangalore"
+
+
+def test_no_neighbourhood_match_offers_the_whole_city(page, fake):
+    search(page, location="Indiranagar", cuisines=["Biryani"])
+    assert page.inner_text(".widen-text").startswith("Nothing in Indiranagar matches all your filters.")
+    fake.replies.append(reply_json([1]))
+    page.click("#widen-search")
+    page.wait_for_selector(".card:not(.skeleton)")
+    assert texts(page, ".card-name")[0].endswith("No Cost")  # the city's only Biryani place, in HSR
+
+
+def test_city_searches_get_no_widen_offer(page, fake):
+    fake.replies.append(reply_json(list(range(1, 11))))
+    search(page, location="Bangalore", cuisines=["Cafe"])  # 4 cafes in the whole fixture city
+    assert page.locator(".widen").count() == 0
+    assert page.inner_text(".note") == "Only 4 restaurants matched."
+
+
 def test_model_and_data_text_is_shown_literally(page, fake):
     fake.replies.append(json.dumps({
         "summary": "<img src=x onerror=\"document.title='pwned'\"> **bold**",
@@ -245,7 +276,7 @@ def test_relaxation_is_stated_above_results(page, fake):
     assert page.inner_text(".banner.warning") == ("Nothing matched exactly, so the search was loosened: "
                                                    "minimum rating lowered from 4.3 to 3.8; "
                                                    "budget widened from high to high or medium.")
-    assert page.inner_text(".note") == "Only 1 restaurant matched."
+    assert page.inner_text(".widen-text").startswith("Only 1 restaurant in Indiranagar matches all your filters.")
     # The banner comes before the results.
     order = page.evaluate("[...document.querySelectorAll('#results > *')].map(n => n.className)")
     assert order.index("banner warning") < order.index("cards")
