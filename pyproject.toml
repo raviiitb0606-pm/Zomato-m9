@@ -30,7 +30,7 @@ dev = ["restaurant-recommender[ingest,streamlit]", "pytest>=8", "httpx>=0.27", "
 where = ["src"]
 
 [tool.setuptools.package-data]
-recommender = ["web/*"]
+recommender = ["web/*.html", "web/static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -135,6 +135,15 @@ def test_meta_returns_form_values_only(client):
     assert body["budget_thresholds"] == {"low_max": 300, "medium_max": 500}
 
 
+def test_web_page_and_assets_are_served(client):
+    page = client.get("/")
+    assert page.status_code == 200 and "text/html" in page.headers["content-type"]
+    assert '/static/app.css' in page.text and '/static/app.js' in page.text
+    for asset in ("/static/app.css", "/static/app.js"):
+        assert client.get(asset).status_code == 200
+    assert client.get("/static/index.html").status_code == 404  # only the assets folder is mounted
+
+
 def test_health(client):
     assert client.get("/health").json() == {"status": "ok"}
 

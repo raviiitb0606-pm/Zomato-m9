@@ -92,7 +92,8 @@ def create_app(engine: Engine | None = None, settings: Settings | None = None) -
 
     app = FastAPI(title="Restaurant Recommender", version="0.1.0", lifespan=lifespan)
     app.include_router(router)
-    app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
+    # web/static is also what Vercel serves at /static, so the page works on both.
+    app.mount("/static", StaticFiles(directory=WEB_DIR / "static"), name="static")
     app.middleware("http")(_body_size_limit)
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(Exception, _internal_error)
