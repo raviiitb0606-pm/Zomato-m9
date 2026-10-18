@@ -115,30 +115,29 @@ CMD ["sh", "-c", "exec uvicorn recommender.api:app --host 0.0.0.0 --port ${PORT:
   ```
   Also confirm the image has no `.env` inside: `docker run --rm recommender ls -a /app`.
 
-### D0.9 `vercel.json` in `src/recommender/web/`
-Vercel can only add the secret header with `routes` transforms, not plain `rewrites`, and `routes` can't be mixed with `rewrites` or `headers` in one file.
+### D0.9 `vercel.json` at the repo root
+Vercel builds from the repo root, which has `pyproject.toml`, so without this file it tries to deploy the FastAPI app (`FASTAPI_ENTRYPOINT_NOT_FOUND`). The file makes the project a plain static site and forwards the API paths with the secret header (only `routes` transforms can add the header):
 ```json
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "",
+  "outputDirectory": "src/recommender/web",
   "routes": [
     {
       "src": "/(meta|recommend|health)",
-      "dest": "https://<railway-domain>/$1",
+      "dest": "https://zomato-m9-production-e838.up.railway.app/$1",
       "transforms": [
-        {
-          "type": "request.headers",
-          "op": "set",
-          "target": { "key": "x-origin-secret" },
-          "args": "$ORIGIN_SECRET",
-          "env": ["ORIGIN_SECRET"]
-        }
+        { "type": "request.headers", "op": "set", "target": { "key": "x-origin-secret" },
+          "args": "$ORIGIN_SECRET", "env": ["ORIGIN_SECRET"] }
       ]
     }
   ]
 }
 ```
-- Responses aren't cached on Vercel's CDN unless the API sends cache headers, which it doesn't. If `/meta` caching is wanted later, return `Cache-Control: public, max-age=3600` from `/meta` only.
-- Verify in a preview deployment that `/`, `/static/app.css` and `/static/app.js` are still served from the files, since the routes list only matches the three API paths.
+- `framework: null` is "Other"; `installCommand: ""` skips the install; `outputDirectory` is the folder that gets published. Requests the route doesn't match fall through to those files.
+- If `ORIGIN_SECRET` isn't set in Vercel, the literal text `$ORIGIN_SECRET` is sent, and a Railway service with the secret set answers 403.
+- Nothing else may sit in `src/recommender/web/`: all of it is public.
 
 **D0 exit check:** full test suite green; the Docker image runs locally with only environment variables; the page at `localhost:8000` works against it; a `/recommend` call without the secret gets 403 when `ORIGIN_SECRET` is set.
 
@@ -167,7 +166,7 @@ Vercel can only add the secret header with `routes` transforms, not plain `rewri
    Don't set `PORT`: Railway provides it.
 3. **Settings → Deploy:** health check path `/health`. Restart policy: on failure. Replicas: 1.
 4. **Settings → Build → Watch paths:** `src/**`, `data/**`, `pyproject.toml`, `Dockerfile`. Course-content and docs commits then don't redeploy the API.
-5. **Networking → Generate domain**, giving `https://<name>.up.railway.app`. Replace `REPLACE-WITH-RAILWAY-DOMAIN.up.railway.app` in `src/recommender/web/vercel.json` with it, and commit.
+5. **Networking → Generate domain**, giving `https://<name>.up.railway.app` (here `zomato-m9-production-e838.up.railway.app`), and put it in the root `vercel.json` (D0.9).
 6. **Verify:**
    ```bash
    curl https://<railway-domain>/health                      # {"status":"ok"}
@@ -180,9 +179,9 @@ Vercel can only add the secret header with `routes` transforms, not plain `rewri
 
 ## 5. Phase D2: frontend on Vercel
 
-1. **New Project** → import the same repo. **Root Directory:** `src/recommender/web`. **Framework preset:** Other. **Build command:** none. **Output directory:** `.`
+1. **New Project** → import the same repo. Leave **Root Directory** empty (the repo root): the root `vercel.json` sets the framework, install command and output folder, and overrides the dashboard.
 2. **Environment variable:** `ORIGIN_SECRET` (same value as on Railway) for Production and Preview.
-3. **Ignored build step** (Settings → Git), so backend-only commits don't rebuild the site: `git diff --quiet HEAD^ HEAD -- .` (run from the root directory).
+3. **Ignored build step** (Settings → Git), so backend-only commits don't rebuild the site: `git diff --quiet HEAD^ HEAD -- src/recommender/web vercel.json`.
 4. **Deploy a preview** from the feature branch and test it before production:
    - The page loads, the form fills from `/meta`, and a search returns cards.
    - The browser's network tab shows calls to `/recommend` on the Vercel domain, never the Railway URL.
