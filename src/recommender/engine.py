@@ -131,7 +131,7 @@ class Engine:
             summary=summary,
             recommendations=[
                 Recommendation(
-                    rank=rank, id=r.id, name=r.name, cuisine=r.cuisines, rating=r.rating,
+                    rank=rank, id=r.id, name=r.name, locality=r.locality, cuisine=r.cuisines, rating=r.rating,
                     estimated_cost=r.cost_for_two, explanation=explanation, explanation_source=source,
                 )
                 for rank, (r, explanation, source) in enumerate(picked, 1)

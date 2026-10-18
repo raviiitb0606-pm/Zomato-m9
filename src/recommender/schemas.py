@@ -77,6 +77,7 @@ class Recommendation(BaseModel):
     rank: int = Field(ge=1)
     id: str
     name: str
+    locality: str | None = None  # neighbourhood, from the dataset
     cuisine: list[str]
     rating: float | None
     estimated_cost: int | None

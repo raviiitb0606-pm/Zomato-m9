@@ -15,7 +15,7 @@ EXAMPLE = {
     "min_rating": 4.0, "extras": "family-friendly, quick service", "top_k": 5,
 }
 RESPONSE_KEYS = {"summary", "recommendations", "relaxed_constraints", "llm_fallback", "message"}
-ITEM_KEYS = {"rank", "id", "name", "cuisine", "rating", "estimated_cost", "explanation", "explanation_source"}
+ITEM_KEYS = {"rank", "id", "name", "locality", "cuisine", "rating", "estimated_cost", "explanation", "explanation_source"}
 
 
 def strict_json(text: str):
@@ -47,7 +47,8 @@ def test_example_body_returns_documented_shape(client, fake):
     assert set(body) == RESPONSE_KEYS
     assert [set(item) for item in body["recommendations"]] == [ITEM_KEYS]
     assert body["recommendations"][0] == {
-        "rank": 1, "id": "r6", "name": "Mid Italian", "cuisine": ["Italian", "Pizza"], "rating": 4.0,
+        "rank": 1, "id": "r6", "name": "Mid Italian", "locality": "Indiranagar", "cuisine": ["Italian", "Pizza"],
+        "rating": 4.0,
         "estimated_cost": 450, "explanation": "Explanation for 1.", "explanation_source": "llm",
     }
     assert body["summary"] == "One Italian pick." and body["llm_fallback"] is False
