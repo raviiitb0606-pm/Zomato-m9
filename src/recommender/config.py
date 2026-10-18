@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     # An upper limit only: each call asks for what its reply needs (prompt.completion_budget).
     llm_max_completion_tokens: int = Field(1280, ge=64, le=8192)
 
+    # Calls to the LLM allowed per minute and per UTC day, across all users; past them,
+    # searches get the pre-ranked fallback. 0 = no cap. See llm/budget.py for the sizing.
+    llm_calls_per_minute: int = Field(3, ge=0)
+    llm_calls_per_day: int = Field(100, ge=0)
+
     # Each candidate costs about 100 prompt tokens against Groq's 8K tokens/minute limit.
     shortlist_size: int = Field(10, ge=1, le=50, validation_alias=AliasChoices("CANDIDATE_CAP", "SHORTLIST_SIZE"))
     data_dir: Path = PROJECT_ROOT / "data"

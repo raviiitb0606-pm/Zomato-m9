@@ -66,12 +66,15 @@ class Engine:
     @classmethod
     def from_settings(cls, settings: Settings | None = None) -> "Engine":
         """Raises DataNotFoundError (no data) or LLMError (no key)."""
+        from recommender.llm.budget import BudgetedLLMClient
         from recommender.llm.groq_client import GroqClient
 
         settings = settings or get_settings()
+        llm = GroqClient.from_settings(settings)
+        if settings.llm_calls_per_minute or settings.llm_calls_per_day:
+            llm = BudgetedLLMClient(llm, settings.llm_calls_per_minute, settings.llm_calls_per_day)
         cache = ResponseCache(settings.response_cache_size) if settings.response_cache_size else None
-        return cls(RestaurantStore.load(settings.data_dir), GroqClient.from_settings(settings),
-                   settings.shortlist_size, cache)
+        return cls(RestaurantStore.load(settings.data_dir), llm, settings.shortlist_size, cache)
 
     def _ask_llm(self, prefs: Preferences, candidates: list[Restaurant]) -> LLMReply | None:
         """The model's reply, or None if it failed. Malformed replies get one retry."""
