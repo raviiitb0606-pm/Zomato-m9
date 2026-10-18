@@ -8,6 +8,7 @@ import logging
 import sys
 import time
 
+from recommender.cache import ResponseCache, cache_key
 from recommender.config import Settings, get_settings
 from recommender.llm.base import LLMClient, LLMError, MalformedReplyError
 from recommender.prompt import (
@@ -55,10 +56,12 @@ def _retry_prompt(user: str, error: Exception) -> str:
 
 
 class Engine:
-    def __init__(self, store: RestaurantStore, llm: LLMClient, shortlist_size: int | None = None):
+    def __init__(self, store: RestaurantStore, llm: LLMClient, shortlist_size: int | None = None,
+                 cache: ResponseCache | None = None):
         self.store = store
         self.llm = llm
         self.shortlist_size = shortlist_size
+        self.cache = cache
 
     @classmethod
     def from_settings(cls, settings: Settings | None = None) -> "Engine":
@@ -66,8 +69,9 @@ class Engine:
         from recommender.llm.groq_client import GroqClient
 
         settings = settings or get_settings()
+        cache = ResponseCache(settings.response_cache_size) if settings.response_cache_size else None
         return cls(RestaurantStore.load(settings.data_dir), GroqClient.from_settings(settings),
-                   settings.shortlist_size)
+                   settings.shortlist_size, cache)
 
     def _ask_llm(self, prefs: Preferences, candidates: list[Restaurant]) -> LLMReply | None:
         """The model's reply, or None if it failed. Malformed replies get one retry."""
@@ -88,6 +92,19 @@ class Engine:
             return None
 
     def recommend(self, prefs: Preferences) -> RecommendationResponse:
+        # `is not None`: an empty cache is falsy (it has a length).
+        key = cache_key(prefs, getattr(self.llm, "model", "")) if self.cache is not None else None
+        if key is not None and (hit := self.cache.get(key)) is not None:
+            log.info("cache hit")
+            return hit
+        resp = self._recommend(prefs)
+        # Only full AI answers: a fallback should recover as soon as the LLM does (CAC-03),
+        # and empty results cost nothing to recompute (CAC-04).
+        if key is not None and resp.recommendations and not resp.llm_fallback:
+            self.cache.put(key, resp)
+        return resp
+
+    def _recommend(self, prefs: Preferences) -> RecommendationResponse:
         shortlist = self.store.query(prefs, size=self.shortlist_size)
         candidates = shortlist.restaurants
         if not candidates:

@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     # Each candidate costs about 100 prompt tokens against Groq's 8K tokens/minute limit.
     shortlist_size: int = Field(10, ge=1, le=50, validation_alias=AliasChoices("CANDIDATE_CAP", "SHORTLIST_SIZE"))
     data_dir: Path = PROJECT_ROOT / "data"
+    # Finished AI answers kept in memory, so a repeated search costs no tokens. 0 turns it off.
+    response_cache_size: int = Field(256, ge=0, le=10_000)
 
     # Deployed behind Vercel: Vercel adds this header to the calls it forwards, and the API
     # rejects calls without it. Unset (local development) means no check.
