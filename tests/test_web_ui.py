@@ -119,8 +119,52 @@ def test_rating_badge_and_extras_counter(page):
     assert page.get_attribute("#extras", "maxlength") == "300"
 
 
+def suggestions(page) -> list[str]:
+    return page.locator("#cuisine-suggestions .suggestion").all_inner_texts()
+
+
+def expected_matches(site, query):
+    """The page's rule: popular first when empty; else names starting with the text, then containing it."""
+    import urllib.request
+    cuisines = json.loads(urllib.request.urlopen(f"{site}/meta").read())["cuisines"]
+    q = query.lower()
+    if not q:
+        return cuisines[:8]
+    return ([c for c in cuisines if c.lower().startswith(q)]
+            + [c for c in cuisines if q in c.lower() and not c.lower().startswith(q)])[:8]
+
+
+def test_cuisine_suggestions_show_popular_ones_on_focus(page, site):
+    assert page.locator("#cuisine-suggestions").is_hidden()
+    page.click("#cuisine-input")
+    assert suggestions(page) == expected_matches(site, "")
+    assert page.get_attribute("#cuisine-input", "aria-expanded") == "true"
+    page.keyboard.press("Escape")
+    assert page.locator("#cuisine-suggestions").is_hidden()
+
+
+def test_typing_filters_suggestions(page, site):
+    page.click("#cuisine-input")
+    page.keyboard.type("in")
+    assert suggestions(page) == expected_matches(site, "in")  # North Indian, Chinese, South Indian...
+    page.fill("#cuisine-input", "xq")  # matches nothing (note "zz" would match Pizza)
+    assert page.inner_text(".suggestions-empty") == "No cuisine by that name in the data."
+
+
+def test_enter_and_arrows_pick_a_suggestion(page):
+    page.click("#cuisine-input")
+    page.keyboard.type("ital")
+    page.keyboard.press("Enter")  # the top match
+    page.keyboard.type("i")
+    page.keyboard.press("ArrowDown")  # the second match
+    second = suggestions(page)[1]
+    page.keyboard.press("Enter")
+    assert texts(page, "#cuisine-chips .chip") == ["Italian", second]
+    assert "Italian" not in suggestions(page)  # chosen ones aren't offered again
+
+
 def test_cuisine_chips_take_only_known_cuisines(page):
-    page.fill("#cuisine-input", "ital")
+    page.fill("#cuisine-input", "martian")
     page.keyboard.press("Enter")
     assert texts(page, "#cuisine-chips .chip") == []  # not a dataset cuisine
     for c in ("italian", "Pizza", "Italian"):
@@ -132,6 +176,20 @@ def test_cuisine_chips_take_only_known_cuisines(page):
     page.focus("#cuisine-input")
     page.keyboard.press("Backspace")
     assert texts(page, "#cuisine-chips .chip") == []
+    assert page.locator("datalist").count() == 0  # phones don't show datalist suggestions reliably
+
+
+def test_tapping_a_suggestion_on_a_phone(browser, site):
+    page = browser.new_page(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True)
+    page.goto(site)
+    page.wait_for_function("document.querySelectorAll('#location option').length > 1")
+    page.tap("#cuisine-input")
+    page.keyboard.type("chi")
+    page.locator("#cuisine-suggestions .suggestion", has_text="Chinese").tap()
+    assert page.locator("#cuisine-chips .chip").all_inner_texts() == ["Chinese"]
+    assert page.evaluate("document.activeElement.id") == "cuisine-input"  # keyboard stays up for the next one
+    assert page.evaluate("document.documentElement.scrollWidth") <= 390
+    page.close()
 
 
 # --- results -------------------------------------------------------------------

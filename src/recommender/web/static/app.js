@@ -4,11 +4,13 @@
 
 const MAX_CUISINES = 10; // same limits as Preferences, so the API never rejects what the form allows
 const RESULT_COUNT = 10; // Preferences.top_k allows 1-10; the API's default is 5
+const MAX_SUGGESTIONS = 8;
 const REQUEST_TIMEOUT_MS = 60000; // past the API's worst case (LLM timeout plus retries) (UI-05)
 const BUDGET_NAMES = { "": "Any budget", low: "Low", medium: "Medium", high: "High" };
 
 const $ = (id) => document.getElementById(id);
-const state = { meta: null, cuisines: [], cuisineIndex: new Map(), searching: false, intro: null };
+const state = { meta: null, cuisines: [], cuisineIndex: new Map(), searching: false, intro: null,
+                suggestions: [], active: -1 };
 
 // --- small DOM helpers ----------------------------------------------------
 
@@ -89,7 +91,6 @@ function fillForm(meta) {
   );
   const bands = budgetBands(meta.budget_thresholds);
   document.querySelectorAll("[data-band]").forEach((node) => { node.textContent = bands[node.dataset.band]; });
-  $("cuisine-list").replaceChildren(...meta.cuisines.map((c) => el("option", { value: c })));
   state.cuisineIndex = new Map(meta.cuisines.map((c) => [c.toLowerCase(), c]));
   $("brand-sub").textContent = `Zomato restaurants in ${[...cities].join(", ")}, ranked and explained by AI`;
 }
@@ -117,7 +118,56 @@ function addCuisine(raw) {
   if (!state.cuisines.includes(match) && state.cuisines.length < MAX_CUISINES) state.cuisines.push(match);
   $("cuisine-input").value = "";
   renderCuisineChips();
+  showSuggestions();
   return true;
+}
+
+// Cuisine suggestions: meta.cuisines is most common first, so an empty box shows the
+// popular ones; typed text matches anywhere in the name, names starting with it first.
+function matchCuisines(query) {
+  const q = query.trim().toLowerCase();
+  const open = (state.meta ? state.meta.cuisines : []).filter((c) => !state.cuisines.includes(c));
+  if (!q) return open.slice(0, MAX_SUGGESTIONS);
+  const starts = open.filter((c) => c.toLowerCase().startsWith(q));
+  const contains = open.filter((c) => !c.toLowerCase().startsWith(q) && c.toLowerCase().includes(q));
+  return [...starts, ...contains].slice(0, MAX_SUGGESTIONS);
+}
+
+function showSuggestions() {
+  const input = $("cuisine-input");
+  const list = $("cuisine-suggestions");
+  if (document.activeElement !== input || input.disabled) return hideSuggestions();
+  state.suggestions = matchCuisines(input.value);
+  state.active = state.suggestions.length && input.value.trim() ? 0 : -1;
+  list.replaceChildren(...(state.suggestions.length
+    ? state.suggestions.map((c, i) => {
+        const item = el("li", { class: "suggestion", role: "option", id: `cuisine-option-${i}`, text: c });
+        // pointerdown, not click: keeps focus in the box, so the list doesn't close first.
+        item.addEventListener("pointerdown", (event) => { event.preventDefault(); addCuisine(c); });
+        return item;
+      })
+    : [el("li", { class: "suggestions-empty", text: "No cuisine by that name in the data." })]));
+  list.hidden = false;
+  input.setAttribute("aria-expanded", "true");
+  highlight();
+}
+
+function hideSuggestions() {
+  $("cuisine-suggestions").hidden = true;
+  $("cuisine-input").setAttribute("aria-expanded", "false");
+  $("cuisine-input").removeAttribute("aria-activedescendant");
+  state.active = -1;
+}
+
+function highlight() {
+  const input = $("cuisine-input");
+  document.querySelectorAll("#cuisine-suggestions .suggestion").forEach((item, i) => {
+    item.classList.toggle("active", i === state.active);
+    item.setAttribute("aria-selected", String(i === state.active));
+    if (i === state.active) item.scrollIntoView({ block: "nearest" });
+  });
+  if (state.active >= 0) input.setAttribute("aria-activedescendant", `cuisine-option-${state.active}`);
+  else input.removeAttribute("aria-activedescendant");
 }
 
 function updateRating() {
@@ -310,14 +360,29 @@ function init() {
   $("min-rating").addEventListener("input", updateRating);
   $("extras").addEventListener("input", updateExtrasCount);
   const cuisineInput = $("cuisine-input");
-  cuisineInput.addEventListener("input", () => addCuisine(cuisineInput.value)); // picked from the list
+  cuisineInput.addEventListener("focus", showSuggestions);
+  cuisineInput.addEventListener("input", showSuggestions);
+  cuisineInput.addEventListener("blur", hideSuggestions);
   cuisineInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
+    const n = state.suggestions.length;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if ($("cuisine-suggestions").hidden) return showSuggestions();
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      if (!n) state.active = -1;
+      else if (state.active < 0) state.active = step > 0 ? 0 : n - 1;
+      else state.active = (state.active + step + n) % n;
+      highlight();
+    } else if (event.key === "Enter") {
       event.preventDefault(); // Enter adds a cuisine; it doesn't submit the form
-      addCuisine(cuisineInput.value);
+      const pick = state.active >= 0 ? state.suggestions[state.active] : cuisineInput.value;
+      addCuisine(pick);
+    } else if (event.key === "Escape") {
+      hideSuggestions();
     } else if (event.key === "Backspace" && !cuisineInput.value && state.cuisines.length) {
       state.cuisines.pop();
       renderCuisineChips();
+      showSuggestions();
     }
   });
   $("edit-search").addEventListener("click", () => {

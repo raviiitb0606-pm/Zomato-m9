@@ -82,13 +82,17 @@
               <label class="field-label" for="cuisine-input">Cuisine</label>
               <span class="field-hint" id="cuisine-count">max 10</span>
             </div>
-            <div class="chip-box" id="cuisine-box">
-              <div class="chip-row" id="cuisine-chips"></div>
-              <input id="cuisine-input" type="text" list="cuisine-list" placeholder="Any cuisine" autocomplete="off"
-                     aria-describedby="cuisine-help">
-              <datalist id="cuisine-list"></datalist>
+            <div class="combo">
+              <div class="chip-box" id="cuisine-box">
+                <div class="chip-row" id="cuisine-chips"></div>
+                <input id="cuisine-input" type="text" placeholder="Any cuisine" autocomplete="off" autocapitalize="off"
+                       spellcheck="false" enterkeyhint="done" role="combobox" aria-autocomplete="list"
+                       aria-expanded="false" aria-controls="cuisine-suggestions" aria-describedby="cuisine-help">
+              </div>
+              <!-- Our own list: <datalist> suggestions don't show reliably on phones (iOS Safari). -->
+              <ul class="suggestions" id="cuisine-suggestions" role="listbox" aria-label="Cuisine suggestions" hidden></ul>
             </div>
-            <p class="field-help" id="cuisine-help">Type to search, then pick from the list.</p>
+            <p class="field-help" id="cuisine-help">Type to search, then tap a suggestion.</p>
           </div>
 
           <div class="field">
