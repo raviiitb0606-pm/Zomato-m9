@@ -7,8 +7,18 @@ from typing import Literal
 from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# src/recommender/config.py -> project root. Paths resolve from here, not the cwd.
+# src/recommender/config.py -> project root (in a source checkout; see base_dir).
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+def base_dir(root: Path = PROJECT_ROOT) -> Path:
+    """Where relative paths such as DATA_DIR resolve from.
+
+    In a source checkout that's the project root, whatever the working directory (CFG-04).
+    An installed package (the Docker image) has no project root: `root` is then Python's
+    library folder, so they resolve from the working directory (/app in the image).
+    """
+    return root if (root / "pyproject.toml").exists() else Path.cwd()
 
 
 class Settings(BaseSettings):
@@ -49,7 +59,7 @@ class Settings(BaseSettings):
 
     # Each candidate costs about 100 prompt tokens against Groq's 8K tokens/minute limit.
     shortlist_size: int = Field(10, ge=1, le=50, validation_alias=AliasChoices("CANDIDATE_CAP", "SHORTLIST_SIZE"))
-    data_dir: Path = PROJECT_ROOT / "data"
+    data_dir: Path = Field(default_factory=lambda: base_dir() / "data")
     # Finished AI answers kept in memory, so a repeated search costs no tokens. 0 turns it off.
     response_cache_size: int = Field(256, ge=0, le=10_000)
 
@@ -67,7 +77,7 @@ class Settings(BaseSettings):
     @field_validator("data_dir")
     @classmethod
     def _resolve_data_dir(cls, v: Path) -> Path:
-        return v if v.is_absolute() else PROJECT_ROOT / v
+        return v if v.is_absolute() else base_dir() / v
 
 
 @lru_cache

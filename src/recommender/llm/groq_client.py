@@ -47,7 +47,8 @@ class GroqClient:
     def from_settings(cls, settings: Settings | None = None) -> "GroqClient":
         settings = settings or get_settings()
         if settings.llm_api_key is None:
-            raise LLMError("LLM_API_KEY is not set. Add your Groq key to .env (see .env.example).")
+            raise LLMError("LLM_API_KEY is not set. Add your Groq key to .env locally (see .env.example), "
+                           "or to the service's variables when deployed.")
         return cls(
             settings.llm_api_key.get_secret_value(),
             settings.llm_model,

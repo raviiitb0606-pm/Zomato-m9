@@ -1,7 +1,9 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
-from recommender.config import PROJECT_ROOT, Settings
+from recommender.config import PROJECT_ROOT, Settings, base_dir
 
 ENV_VARS = [
     "LLM_API_KEY", "GROQ_API_KEY", "LLM_MODEL", "LLM_TIMEOUT_SECONDS", "LLM_TIMEOUT_S",
@@ -49,6 +51,23 @@ def test_reads_env_names_and_fallbacks(monkeypatch, env, field, expected):
 def test_relative_data_dir_resolves_from_project_root(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)  # CFG-04: cwd must not matter
     assert make(data_dir="data").data_dir == PROJECT_ROOT / "data"
+
+
+def test_installed_package_resolves_relative_paths_from_the_cwd(monkeypatch, tmp_path):
+    # No pyproject.toml beside the package: the Docker image, where the package sits in
+    # site-packages. A relative DATA_DIR must not end up there (a real Railway crash).
+    installed_root = tmp_path / "lib" / "python3.12"
+    installed_root.mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    assert base_dir(installed_root) == tmp_path
+    assert base_dir(PROJECT_ROOT) == PROJECT_ROOT  # source checkout
+
+
+def test_relative_data_dir_follows_base_dir(monkeypatch, tmp_path):
+    monkeypatch.setattr("recommender.config.base_dir", lambda: tmp_path)
+    assert make(data_dir="data").data_dir == tmp_path / "data"
+    assert make().data_dir == tmp_path / "data"
+    assert make(data_dir="/app/data").data_dir == Path("/app/data")
 
 
 @pytest.mark.parametrize("field,value", [
