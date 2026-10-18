@@ -7,6 +7,7 @@ No CORS: the web UI is served from this same origin, and the Streamlit UI calls 
 from its server process (SRV-09).
 """
 
+import hmac
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -16,7 +17,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from recommender.config import Settings
+from recommender.config import Settings, get_settings
 from recommender.engine import Engine
 from recommender.llm.base import LLMError
 from recommender.schemas import Meta, Preferences, RecommendationResponse
@@ -74,6 +75,20 @@ async def _validation_error(request: Request, exc: RequestValidationError) -> JS
     return JSONResponse({"detail": jsonable_encoder(errors)}, status_code=422)
 
 
+def _origin_guard(secret: str):
+    """Reject requests that didn't come through Vercel. /health stays open for Railway."""
+    expected = secret.encode()
+
+    async def check(request: Request, call_next):
+        if request.url.path != "/health":
+            given = request.headers.get("x-origin-secret", "").encode()
+            if not hmac.compare_digest(given, expected):
+                return JSONResponse({"detail": "Forbidden."}, status_code=403)
+        return await call_next(request)
+
+    return check
+
+
 async def _internal_error(request: Request, exc: Exception) -> JSONResponse:
     # Starlette re-raises after this, so the traceback still reaches the server log (SRV-06).
     return JSONResponse({"detail": "Internal server error."}, status_code=500)
@@ -81,6 +96,8 @@ async def _internal_error(request: Request, exc: Exception) -> JSONResponse:
 
 def create_app(engine: Engine | None = None, settings: Settings | None = None) -> FastAPI:
     """Without `engine` (tests pass a fake one), it is built from settings at startup."""
+    settings = settings or get_settings()
+    secret = settings.origin_secret.get_secret_value() if settings.origin_secret else None
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -90,13 +107,17 @@ def create_app(engine: Engine | None = None, settings: Settings | None = None) -
             raise StartupError(f"API cannot start: {exc}") from None
         yield
 
-    app = FastAPI(title="Restaurant Recommender", version="0.1.0", lifespan=lifespan)
+    # Behind Vercel the API isn't meant to be browsed, so the interactive docs go too.
+    docs = {} if secret is None else {"docs_url": None, "redoc_url": None, "openapi_url": None}
+    app = FastAPI(title="Restaurant Recommender", version="0.1.0", lifespan=lifespan, **docs)
     app.include_router(router)
     # web/static is also what Vercel serves at /static, so the page works on both.
     app.mount("/static", StaticFiles(directory=WEB_DIR / "static"), name="static")
     app.middleware("http")(_body_size_limit)
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(Exception, _internal_error)
+    if secret is not None:
+        app.middleware("http")(_origin_guard(secret))  # added last, so it runs first
     return app
 
 

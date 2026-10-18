@@ -35,10 +35,15 @@ class Settings(BaseSettings):
     shortlist_size: int = Field(10, ge=1, le=50, validation_alias=AliasChoices("CANDIDATE_CAP", "SHORTLIST_SIZE"))
     data_dir: Path = PROJECT_ROOT / "data"
 
-    @field_validator("llm_api_key", mode="before")
+    # Deployed behind Vercel: Vercel adds this header to the calls it forwards, and the API
+    # rejects calls without it. Unset (local development) means no check.
+    origin_secret: SecretStr | None = None
+
+    @field_validator("llm_api_key", "origin_secret", mode="before")
     @classmethod
     def _blank_key_is_missing(cls, v):
         # `LLM_API_KEY=` copied unchanged from .env.example must fail the startup check.
+        # A blank ORIGIN_SECRET likewise means "not set", never "the empty string".
         return None if isinstance(v, str) and not v.strip() else v
 
     @field_validator("data_dir")

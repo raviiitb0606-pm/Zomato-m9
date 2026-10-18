@@ -153,6 +153,47 @@ def test_docs_page_is_served(client):
     assert "/recommend" in client.get("/openapi.json").json()["paths"]
 
 
+# --- origin secret -----------------------------------------------------------
+
+SECRET = "s3cret-value"
+
+
+@pytest.fixture
+def guarded(store, fake):
+    app = create_app(engine=Engine(store, fake), settings=settings(origin_secret=SECRET))
+    with TestClient(app, raise_server_exceptions=False) as c:
+        yield c
+
+
+@pytest.mark.parametrize("headers", [{}, {"x-origin-secret": "wrong"}, {"x-origin-secret": ""}])
+@pytest.mark.parametrize("method,path", [("get", "/meta"), ("post", "/recommend"), ("get", "/")])
+def test_calls_without_the_secret_are_refused(guarded, fake, headers, method, path):
+    resp = getattr(guarded, method)(path, headers=headers, **({"json": EXAMPLE} if method == "post" else {}))
+    assert resp.status_code == 403 and resp.json() == {"detail": "Forbidden."}
+    assert fake.calls == []
+
+
+def test_calls_with_the_secret_work(guarded, fake):
+    fake.replies.append(reply_json([1]))
+    ok = {"x-origin-secret": SECRET}
+    assert guarded.get("/meta", headers=ok).status_code == 200
+    assert guarded.post("/recommend", json=EXAMPLE, headers=ok).status_code == 200
+
+
+def test_health_needs_no_secret(guarded):
+    assert guarded.get("/health").json() == {"status": "ok"}
+
+
+@pytest.mark.parametrize("path", ["/docs", "/openapi.json", "/redoc"])
+def test_docs_are_off_behind_the_secret(guarded, path):
+    assert guarded.get(path, headers={"x-origin-secret": SECRET}).status_code == 404
+
+
+def test_blank_secret_means_no_check(store, fake):
+    with TestClient(create_app(engine=Engine(store, fake), settings=settings(origin_secret="  "))) as c:
+        assert c.get("/meta").status_code == 200 and c.get("/docs").status_code == 200
+
+
 # --- startup -----------------------------------------------------------------
 
 def settings(**kw):
