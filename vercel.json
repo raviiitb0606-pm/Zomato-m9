@@ -1,9 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "",
+  "outputDirectory": "src/recommender/web",
   "routes": [
     {
       "src": "/(meta|recommend|health)",
-      "dest": "https://REPLACE-WITH-RAILWAY-DOMAIN.up.railway.app/$1",
+      "dest": "https://zomato-m9-production-e838.up.railway.app/$1",
       "transforms": [
         {
           "type": "request.headers",
