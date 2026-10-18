@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Restaurant Finder</title>
+  <meta name="description" content="Zomato restaurants in Bangalore, ranked and explained by AI.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23f5a524'/%3E%3Ctext x='16' y='21' font-family='Arial' font-weight='700' font-size='13' text-anchor='middle' fill='%230f1115'%3ERF%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <!-- Icons, used with <svg><use href="#i-name"/></svg> -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-tune" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2.8 2.8 5.8 6.4.9-4.6 4.5 1.1 6.3L12 17.3l-5.7 3 1.1-6.3L2.8 9.5l6.4-.9z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.2"/><path stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><path fill="currentColor" d="M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6zM18 13l.9 2.1L21 16l-2.1.9L18 19l-.9-2.1L15 16l2.1-.9z"/></symbol>
+    <symbol id="i-warning" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3 2 20h20z"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 10v4M12 17h0"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 11v5M12 8h0"/></symbol>
+    <symbol id="i-error" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 7v6M12 16.5h0"/></symbol>
+    <symbol id="i-retry" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4.5h-4.5"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></symbol>
+    <symbol id="i-plate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  </svg>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-mark" aria-hidden="true">RF</div>
+      <div>
+        <div class="brand-row"><h1 class="brand-name">Restaurant Finder</h1><span class="badge-city">BLR</span></div>
+        <p class="brand-sub" id="brand-sub">Zomato restaurants in Bangalore, ranked and explained by AI</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="filters" id="filters">
+      <!-- Shown instead of the form on small screens after a search -->
+      <section class="panel summary-panel" id="search-summary" aria-label="Current search">
+        <div class="panel-head">
+          <h2 class="panel-title"><svg class="ico"><use href="#i-tune"/></svg>Your search</h2>
+          <button type="button" class="btn-ghost btn-sm" id="edit-search"><svg class="ico-sm"><use href="#i-edit"/></svg>Edit search</button>
+        </div>
+        <div class="chip-row" id="summary-chips"></div>
+      </section>
+
+      <form class="panel" id="search" novalidate>
+        <fieldset id="search-fields">
+          <legend class="sr-only">Search filters</legend>
+          <div class="panel-head">
+            <h2 class="panel-title"><svg class="ico"><use href="#i-tune"/></svg>Search filters</h2>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="location">Location</label>
+            <div class="select-wrap">
+              <svg class="ico select-icon"><use href="#i-pin"/></svg>
+              <select id="location" name="location"></select>
+              <svg class="ico select-chevron"><use href="#i-chevron"/></svg>
+            </div>
+          </div>
+
+          <div class="field" role="radiogroup" aria-labelledby="budget-label">
+            <span class="field-label" id="budget-label">Budget for two</span>
+            <div class="segmented" id="budget">
+              <label class="seg"><input type="radio" name="budget" value="" checked><span class="seg-main">Any</span><span class="seg-sub">All prices</span></label>
+              <label class="seg"><input type="radio" name="budget" value="low"><span class="seg-main">Low</span><span class="seg-sub" data-band="low"></span></label>
+              <label class="seg"><input type="radio" name="budget" value="medium"><span class="seg-main">Medium</span><span class="seg-sub" data-band="medium"></span></label>
+              <label class="seg"><input type="radio" name="budget" value="high"><span class="seg-main">High</span><span class="seg-sub" data-band="high"></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <label class="field-label" for="cuisine-input">Cuisine</label>
+              <span class="field-hint" id="cuisine-count">max 10</span>
+            </div>
+            <div class="chip-box" id="cuisine-box">
+              <div class="chip-row" id="cuisine-chips"></div>
+              <input id="cuisine-input" type="text" list="cuisine-list" placeholder="Any cuisine" autocomplete="off"
+                     aria-describedby="cuisine-help">
+              <datalist id="cuisine-list"></datalist>
+            </div>
+            <p class="field-help" id="cuisine-help">Type to search, then pick from the list.</p>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <label class="field-label" for="min-rating">Minimum rating</label>
+              <span class="value-badge" id="rating-badge" aria-hidden="true"></span>
+            </div>
+            <input id="min-rating" type="range" min="0" max="5" step="0.1" value="0" aria-describedby="rating-help">
+            <div class="scale" aria-hidden="true"><span>0.0 (Any)</span><span>2.5</span><span>5.0</span></div>
+            <p class="field-help" id="rating-help">0 means any rating, including places not yet rated.</p>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <label class="field-label" for="extras">Anything else?</label>
+              <span class="field-hint" id="extras-count" aria-live="polite">0/300</span>
+            </div>
+            <textarea id="extras" rows="3" maxlength="300" placeholder="For example: family-friendly, quick service"></textarea>
+          </div>
+
+          <button type="submit" class="btn-primary" id="submit">
+            <svg class="ico"><use href="#i-search"/></svg><span id="submit-label">Find restaurants</span>
+          </button>
+        </fieldset>
+      </form>
+    </aside>
+
+    <section class="results" id="results" aria-live="polite" aria-busy="false">
+      <div class="panel intro" id="intro">
+        <svg class="intro-icon"><use href="#i-sparkle"/></svg>
+        <h2 class="intro-title">Find a place to eat</h2>
+        <p class="intro-text">Choose a location and any preferences, then press <strong>Find restaurants</strong>.
+          The AI ranks the best matches and explains each pick using only the restaurant's data.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <span>Data: Zomato restaurant listings for Bangalore.</span>
+      <span>Ratings and costs come from the data; explanations are written by AI.</span>
+    </div>
+  </footer>
+</body>
+</html>

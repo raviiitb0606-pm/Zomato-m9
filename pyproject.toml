@@ -21,10 +21,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+# playwright drives the web UI tests (tests/test_web_ui.py); they skip without a browser.
+dev = ["pytest>=8", "playwright>=1.44"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+recommender = ["web/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

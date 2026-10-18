@@ -1,16 +1,20 @@
 """HTTP API over the engine (architecture.md §5.6).
 
-Run: uvicorn recommender.api:app    (interactive docs at http://127.0.0.1:8000/docs)
+Run: uvicorn recommender.api:app
+The web UI is at http://127.0.0.1:8000/ and the interactive API docs at /docs.
 
-No CORS: the Streamlit UI calls the API from its server process, not the browser (SRV-09).
+No CORS: the web UI is served from this same origin, and the Streamlit UI calls the API
+from its server process (SRV-09).
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from recommender.config import Settings
 from recommender.engine import Engine
@@ -20,6 +24,7 @@ from recommender.store import DataNotFoundError
 
 # A full Preferences body is under 2 KB (API-65). Chunked bodies skip this check.
 MAX_BODY_BYTES = 16 * 1024
+WEB_DIR = Path(__file__).parent / "web"
 
 
 class StartupError(RuntimeError):
@@ -48,6 +53,11 @@ def meta(engine: Engine = Depends(get_engine)) -> Meta:
 @router.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@router.get("/", include_in_schema=False)
+def web_ui() -> FileResponse:
+    return FileResponse(WEB_DIR / "index.html")
 
 
 async def _body_size_limit(request: Request, call_next):
@@ -82,6 +92,7 @@ def create_app(engine: Engine | None = None, settings: Settings | None = None) -
 
     app = FastAPI(title="Restaurant Recommender", version="0.1.0", lifespan=lifespan)
     app.include_router(router)
+    app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
     app.middleware("http")(_body_size_limit)
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(Exception, _internal_error)
