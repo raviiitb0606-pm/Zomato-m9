@@ -3,6 +3,7 @@
 "use strict";
 
 const MAX_CUISINES = 10; // same limits as Preferences, so the API never rejects what the form allows
+const RESULT_COUNT = 10; // Preferences.top_k allows 1-10; the API's default is 5
 const REQUEST_TIMEOUT_MS = 60000; // past the API's worst case (LLM timeout plus retries) (UI-05)
 const BUDGET_NAMES = { "": "Any budget", low: "Low", medium: "Medium", high: "High" };
 
@@ -139,6 +140,7 @@ function readPrefs() {
     cuisine: [...state.cuisines],
     min_rating: Number($("min-rating").value),
     extras: $("extras").value,
+    top_k: RESULT_COUNT,
   };
 }
 

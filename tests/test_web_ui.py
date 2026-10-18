@@ -153,6 +153,14 @@ def test_search_shows_summary_and_every_card_field(page, fake):
     assert page.locator("#submit").is_enabled()
 
 
+def test_page_asks_for_ten_results(page, fake):
+    fake.replies.append(reply_json(list(range(1, 11))))
+    with page.expect_request("**/recommend") as req:
+        search(page, location="Bangalore")
+    assert req.value.post_data_json["top_k"] == 10
+    assert page.locator(".card").count() == 10  # the fixture city has 12 restaurants
+
+
 def test_model_and_data_text_is_shown_literally(page, fake):
     fake.replies.append(json.dumps({
         "summary": "<img src=x onerror=\"document.title='pwned'\"> **bold**",
