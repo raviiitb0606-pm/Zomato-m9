@@ -80,5 +80,7 @@ def test_engine_from_settings_wraps_the_client(monkeypatch, data_dir):
     s = Settings(_env_file=None, data_dir=data_dir)
     llm = Engine.from_settings(s).llm
     assert isinstance(llm, BudgetedLLMClient) and (llm.per_minute, llm.per_day) == (3, 100)
+    assert Engine.from_settings(s).deadline_s == 25.0
+    assert Engine.from_settings(s.model_copy(update={"request_deadline_s": 0})).deadline_s is None
     off = s.model_copy(update={"llm_calls_per_minute": 0, "llm_calls_per_day": 0})
     assert isinstance(Engine.from_settings(off).llm, FakeLLMClient)

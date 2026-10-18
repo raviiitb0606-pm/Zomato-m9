@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 import pytest
 
@@ -148,6 +149,41 @@ def test_error_on_retry_falls_back(store):
 def test_unexpected_exceptions_propagate(store):
     eng, _ = engine(store, RuntimeError("bug"))
     with pytest.raises(RuntimeError):
+        eng.recommend(BTM)
+
+
+# --- deadline ----------------------------------------------------------------
+
+class SlowClient:
+    def __init__(self, delay, reply=None, exc=None):
+        self.delay, self.reply, self.exc, self.calls = delay, reply, exc, 0
+
+    def complete(self, system, user, response_schema, max_tokens=None):
+        self.calls += 1
+        time.sleep(self.delay)
+        if self.exc:
+            raise self.exc
+        return self.reply
+
+
+def test_llm_past_the_deadline_falls_back_promptly(store, caplog):
+    eng = Engine(store, SlowClient(1.0, reply_json([1, 2, 3])), deadline_s=0.1)
+    start = time.perf_counter()
+    with caplog.at_level(logging.WARNING, logger="recommender.engine"):
+        resp = eng.recommend(BTM)
+    assert time.perf_counter() - start < 0.6
+    assert resp.llm_fallback is True and ids(resp) == preranked(store)[:3]
+    assert "took over 0.1s" in caplog.text
+
+
+def test_llm_within_the_deadline_is_used(store):
+    eng = Engine(store, SlowClient(0.01, reply_json([2, 1, 3])), deadline_s=2)
+    assert eng.recommend(BTM).llm_fallback is False
+
+
+def test_unexpected_errors_still_propagate_through_the_deadline(store):
+    eng = Engine(store, SlowClient(0, exc=RuntimeError("bug")), deadline_s=2)
+    with pytest.raises(RuntimeError, match="bug"):
         eng.recommend(BTM)
 
 

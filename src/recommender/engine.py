@@ -7,6 +7,8 @@ import argparse
 import logging
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 
 from recommender.cache import ResponseCache, cache_key
 from recommender.config import Settings, get_settings
@@ -19,6 +21,10 @@ from recommender.schemas import Preferences, Recommendation, RecommendationRespo
 from recommender.store import RestaurantStore
 
 log = logging.getLogger(__name__)
+
+# Runs LLM calls so a request can stop waiting at its deadline. A call that overruns
+# finishes in the background and its reply is dropped.
+_LLM_POOL = ThreadPoolExecutor(max_workers=8, thread_name_prefix="llm")
 
 MAX_EXPLANATION_CHARS = 500
 FALLBACK_SUMMARY = "Top matches ranked by rating and number of reviews."
@@ -57,11 +63,12 @@ def _retry_prompt(user: str, error: Exception) -> str:
 
 class Engine:
     def __init__(self, store: RestaurantStore, llm: LLMClient, shortlist_size: int | None = None,
-                 cache: ResponseCache | None = None):
+                 cache: ResponseCache | None = None, deadline_s: float | None = None):
         self.store = store
         self.llm = llm
         self.shortlist_size = shortlist_size
         self.cache = cache
+        self.deadline_s = deadline_s  # for the whole LLM step, retries included (NET-08)
 
     @classmethod
     def from_settings(cls, settings: Settings | None = None) -> "Engine":
@@ -74,7 +81,8 @@ class Engine:
         if settings.llm_calls_per_minute or settings.llm_calls_per_day:
             llm = BudgetedLLMClient(llm, settings.llm_calls_per_minute, settings.llm_calls_per_day)
         cache = ResponseCache(settings.response_cache_size) if settings.response_cache_size else None
-        return cls(RestaurantStore.load(settings.data_dir), llm, settings.shortlist_size, cache)
+        return cls(RestaurantStore.load(settings.data_dir), llm, settings.shortlist_size, cache,
+                   settings.request_deadline_s or None)
 
     def _ask_llm(self, prefs: Preferences, candidates: list[Restaurant]) -> LLMReply | None:
         """The model's reply, or None if it failed. Malformed replies get one retry."""
@@ -92,6 +100,17 @@ class Engine:
             return parse_reply(self.llm.complete(SYSTEM_PROMPT, retry_user, RESPONSE_SCHEMA, budget))
         except (LLMError, ReplyError) as exc:
             log.warning("llm retry failed, using fallback: %s", exc)
+            return None
+
+    def _ask_llm_in_time(self, prefs: Preferences, candidates: list[Restaurant]) -> LLMReply | None:
+        """_ask_llm, or None (the fallback) if it runs past the deadline."""
+        if not self.deadline_s:
+            return self._ask_llm(prefs, candidates)
+        future = _LLM_POOL.submit(self._ask_llm, prefs, candidates)
+        try:
+            return future.result(timeout=self.deadline_s)
+        except FutureTimeout:
+            log.warning("llm took over %gs, using fallback", self.deadline_s)
             return None
 
     def recommend(self, prefs: Preferences) -> RecommendationResponse:
@@ -114,7 +133,7 @@ class Engine:
             return RecommendationResponse(message=shortlist.message)
 
         want = pick_count(prefs.top_k, candidates)
-        reply = self._ask_llm(prefs, candidates)
+        reply = self._ask_llm_in_time(prefs, candidates)
 
         # Keep the model's picks that are real, unique candidate numbers, in its order.
         by_key = candidate_keys(candidates)

@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     # An upper limit only: each call asks for what its reply needs (prompt.completion_budget).
     llm_max_completion_tokens: int = Field(1280, ge=64, le=8192)
 
+    # Longest a search waits for the LLM, retries included; then it serves the fallback.
+    # Keep it under the proxy's timeout in front of the API. 0 = no deadline.
+    request_deadline_s: float = Field(25.0, ge=0, le=300, validation_alias=AliasChoices(
+        "REQUEST_DEADLINE_SECONDS", "request_deadline_s"))
+
     # Searches per visitor (by IP) on /recommend; past them the API answers 429. 0 = no limit.
     rate_limit_per_minute: int = Field(5, ge=0)
     rate_limit_per_day: int = Field(60, ge=0)
