@@ -8,6 +8,7 @@ from its server process (SRV-09).
 """
 
 import hmac
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -108,6 +109,12 @@ def create_app(engine: Engine | None = None, settings: Settings | None = None) -
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        # Uvicorn sets up only its own loggers; this makes the app's lines (one per search,
+        # token usage per LLM call) reach the server log.
+        if not logging.getLogger().handlers:
+            logging.basicConfig(level=settings.log_level, format="%(levelname)s %(name)s: %(message)s")
+        logging.getLogger("recommender").setLevel(settings.log_level)
+        logging.getLogger("httpx").setLevel(logging.WARNING)  # one line per Groq request otherwise
         try:
             app.state.engine = engine or Engine.from_settings(settings)
         except (DataNotFoundError, LLMError) as exc:

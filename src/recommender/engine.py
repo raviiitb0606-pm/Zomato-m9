@@ -55,6 +55,18 @@ def _trim(text: str) -> str:
     return cut[:end + 1] if end > 0 else cut.rstrip() + "…"
 
 
+def _log_search(prefs: Preferences, resp: RecommendationResponse, start: float,
+                shortlist: int | None, cache: str) -> None:
+    """One line per search: its shape, never the extras text (it may hold personal data)."""
+    log.info(
+        "search location=%r budget=%s cuisines=%d min_rating=%g extras_chars=%d top_k=%d "
+        "shortlist=%s relaxed=%d results=%d fallback=%s cache=%s ms=%d",
+        prefs.location[:40], prefs.budget or "any", len(prefs.cuisine), prefs.min_rating, len(prefs.extras),
+        prefs.top_k, "-" if shortlist is None else shortlist, len(resp.relaxed_constraints),
+        len(resp.recommendations), resp.llm_fallback, cache, (time.perf_counter() - start) * 1000,
+    )
+
+
 def _retry_prompt(user: str, error: Exception) -> str:
     reason = str(error)[:200]
     return (f"{user}\n\nYour previous reply could not be used ({reason}). "
@@ -114,23 +126,26 @@ class Engine:
             return None
 
     def recommend(self, prefs: Preferences) -> RecommendationResponse:
+        start = time.perf_counter()
         # `is not None`: an empty cache is falsy (it has a length).
         key = cache_key(prefs, getattr(self.llm, "model", "")) if self.cache is not None else None
         if key is not None and (hit := self.cache.get(key)) is not None:
-            log.info("cache hit")
+            _log_search(prefs, hit, start, shortlist=None, cache="hit")
             return hit
-        resp = self._recommend(prefs)
+        resp, shortlist = self._recommend(prefs)
         # Only full AI answers: a fallback should recover as soon as the LLM does (CAC-03),
         # and empty results cost nothing to recompute (CAC-04).
         if key is not None and resp.recommendations and not resp.llm_fallback:
             self.cache.put(key, resp)
+        _log_search(prefs, resp, start, shortlist, cache="miss" if key is not None else "off")
         return resp
 
-    def _recommend(self, prefs: Preferences) -> RecommendationResponse:
+    def _recommend(self, prefs: Preferences) -> tuple[RecommendationResponse, int]:
+        """The response, and how many candidates went to the LLM."""
         shortlist = self.store.query(prefs, size=self.shortlist_size)
         candidates = shortlist.restaurants
         if not candidates:
-            return RecommendationResponse(message=shortlist.message)
+            return RecommendationResponse(message=shortlist.message), 0
 
         want = pick_count(prefs.top_k, candidates)
         reply = self._ask_llm_in_time(prefs, candidates)
@@ -178,7 +193,7 @@ class Engine:
             relaxed_constraints=shortlist.relaxed_constraints,
             llm_fallback=llm_fallback,
             message=shortlist.message,
-        )
+        ), len(candidates)
 
 
 def main(argv: list[str] | None = None, engine: Engine | None = None) -> int:

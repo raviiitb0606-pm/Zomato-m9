@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     request_deadline_s: float = Field(25.0, ge=0, le=300, validation_alias=AliasChoices(
         "REQUEST_DEADLINE_SECONDS", "request_deadline_s"))
 
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+
     # Searches per visitor (by IP) on /recommend; past them the API answers 429. 0 = no limit.
     rate_limit_per_minute: int = Field(5, ge=0)
     rate_limit_per_day: int = Field(60, ge=0)

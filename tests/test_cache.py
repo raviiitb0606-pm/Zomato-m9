@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from recommender.cache import ResponseCache, cache_key
@@ -71,6 +73,19 @@ def test_callers_cannot_change_a_cached_answer(store):
     eng, _ = engine(store, reply_json([1, 2, 3]))
     eng.recommend(BTM).recommendations.clear()
     assert len(eng.recommend(BTM).recommendations) == 3
+
+
+def test_each_search_logs_its_shape_but_not_the_extras(store, caplog):
+    eng, _ = engine(store, reply_json([1, 2, 3]))
+    prefs = BTM.model_copy(update={"extras": "call me on 98450 12345"})
+    with caplog.at_level(logging.INFO, logger="recommender.engine"):
+        eng.recommend(prefs)
+        eng.recommend(prefs)
+    lines = [r.getMessage() for r in caplog.records if r.getMessage().startswith("search ")]
+    assert len(lines) == 2
+    assert "location='BTM'" in lines[0] and "extras_chars=22" in lines[0] and "shortlist=5" in lines[0]
+    assert "fallback=False cache=miss" in lines[0] and "cache=hit" in lines[1] and "shortlist=-" in lines[1]
+    assert "98450" not in caplog.text
 
 
 def test_settings_size_zero_turns_the_cache_off(monkeypatch, data_dir):
