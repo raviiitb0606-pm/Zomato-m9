@@ -9,7 +9,7 @@ from recommender.config import Settings
 from recommender.ingestion import cli
 from recommender.ingestion.clean import (
     COLUMNS, REQUIRED_COLUMNS, assign_tier, budget_thresholds, clean, fix_text,
-    outlet_key, parse_cost, parse_rating, split_list,
+    outlet_key, parse_cost, parse_rating, split_list, zomato_link,
 )
 
 
@@ -83,6 +83,23 @@ def test_fix_text(raw, expected):
 def test_split_list():
     assert split_list("North Indian,  chinese,,north indian , ") == ["North Indian", "chinese"]
     assert split_list(None) == []
+
+
+@pytest.mark.parametrize("url,expected", [
+    ("https://www.zomato.com/bangalore/jalsa-banashankari?context=eyJzZSI6", "https://www.zomato.com/bangalore/jalsa-banashankari"),
+    ("http://www.zomato.com/bangalore/toit-indiranagar/", "https://www.zomato.com/bangalore/toit-indiranagar"),
+    ("https://evil.example/bangalore/x", None),          # only Zomato pages become links
+    ("javascript:alert(1)//www.zomato.com/x", None),
+    ("https://www.zomato.com/", None),
+    (None, None),
+])
+def test_zomato_link(url, expected):
+    assert zomato_link(url) == expected
+
+
+def test_clean_keeps_each_outlets_zomato_link():
+    df, _, _ = clean(frame(raw_row()))
+    assert df["zomato_url"].tolist() == ["https://www.zomato.com/bangalore/place-a"]
 
 
 def test_outlet_key():

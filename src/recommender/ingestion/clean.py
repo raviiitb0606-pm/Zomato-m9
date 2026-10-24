@@ -20,7 +20,7 @@ NULL_RATINGS = {"", "NEW", "-"}
 
 COLUMNS = [
     "id", "name", "city", "locality", "cuisines", "cost_for_two", "budget_tier",
-    "rating", "votes", "tags", "popular_dishes",
+    "rating", "votes", "tags", "popular_dishes", "zomato_url",
 ]
 
 
@@ -102,6 +102,17 @@ def outlet_key(url) -> str | None:
         return None
     parts = urlsplit(url.strip())
     return f"{parts.netloc}{parts.path}".rstrip("/").lower() or None
+
+
+def zomato_link(url) -> str | None:
+    """The outlet's Zomato page without the search-tracking query ("?context=..."). Only
+    https://www.zomato.com links are kept, since the page puts them in an <a href>."""
+    if not isinstance(url, str):
+        return None
+    parts = urlsplit(url.strip())
+    if parts.scheme not in ("http", "https") or parts.netloc.lower() != "www.zomato.com" or not parts.path.strip("/"):
+        return None
+    return f"https://www.zomato.com{parts.path}".rstrip("/")
 
 
 def city_from_key(key: str) -> str | None:
@@ -197,6 +208,7 @@ def clean(raw: pd.DataFrame) -> tuple[pd.DataFrame, tuple[int, int], CleanReport
         "votes": best["votes_clean"].values,
         "tags": tags_by_key.loc[best.index].values,
         "popular_dishes": best["dish_liked"].map(split_list).values,
+        "zomato_url": best["url"].map(zomato_link).values,
     })
     if out["id"].duplicated().any():
         raise ValueError("outlet id collision; widen the id hash")

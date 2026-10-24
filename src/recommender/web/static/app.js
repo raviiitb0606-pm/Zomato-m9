@@ -45,6 +45,8 @@ function showResults(...nodes) {
 const formatRupees = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 const describeRelaxation = (change) =>
   change.replace("min_rating relaxed", "minimum rating lowered").replace("budget relaxed", "budget widened");
+// Links come from the dataset; only Zomato pages become clickable.
+const isZomatoPage = (url) => typeof url === "string" && url.startsWith("https://www.zomato.com/");
 const monogram = (name) => (name.match(/[\p{L}\p{N}]/u) || ["?"])[0].toUpperCase();
 
 function budgetBands(t) {
@@ -266,7 +268,11 @@ function card(rec, fallback) {
         el("h3", { class: "card-name" }, el("span", { class: "sr-only", text: `${rec.rank}. ` }), rec.name),
         rec.locality ? el("span", { class: "card-place" }, icon("pin", "ico-sm"), rec.locality) : null,
         el("div", { class: "tags" }, ...rec.cuisine.map((c) => el("span", { class: "tag", text: c })))),
-      el("div", { class: "card-stats" }, rating, cost)),
+      el("div", { class: "card-stats" }, rating, cost,
+        isZomatoPage(rec.zomato_url)
+          ? el("a", { class: "zomato-link", href: rec.zomato_url, target: "_blank", rel: "noopener noreferrer",
+                      "aria-label": `${rec.name} on Zomato (opens in a new tab)` }, "View on Zomato", icon("external", "ico-sm"))
+          : null)),
     why);
 }
 

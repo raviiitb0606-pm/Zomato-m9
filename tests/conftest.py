@@ -26,7 +26,8 @@ def fixture_frame() -> pd.DataFrame:
     df = pd.DataFrame([
         {"id": i, "name": n, "city": "Bangalore", "locality": loc, "cuisines": cu,
          "cost_for_two": cost, "budget_tier": tier, "rating": rating, "votes": votes,
-         "tags": [], "popular_dishes": []}
+         "tags": [], "popular_dishes": [],
+         "zomato_url": None if i == "r5" else f"https://www.zomato.com/bangalore/{n.lower().replace(' ', '-')}"}
         for i, n, loc, cu, cost, tier, rating, votes in FIXTURE
     ])
     df["cost_for_two"] = df["cost_for_two"].astype("Int64")

@@ -71,6 +71,7 @@ class Restaurant(BaseModel):
     votes: int = Field(0, ge=0)
     tags: list[str] = Field(default_factory=list)
     popular_dishes: list[str] = Field(default_factory=list)
+    zomato_url: str | None = None  # the outlet's Zomato page (data from about 2019)
 
 
 class Recommendation(BaseModel):
@@ -78,6 +79,7 @@ class Recommendation(BaseModel):
     id: str
     name: str
     locality: str | None = None  # neighbourhood, from the dataset
+    zomato_url: str | None = None  # https://www.zomato.com/... page, from the dataset
     cuisine: list[str]
     rating: float | None
     estimated_cost: int | None

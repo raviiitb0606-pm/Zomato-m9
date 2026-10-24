@@ -200,6 +200,7 @@ Response:
       "id": "a1b2c3",
       "name": "Example Trattoria",
       "locality": "Indiranagar",
+      "zomato_url": "https://www.zomato.com/bangalore/example-trattoria-indiranagar",
       "cuisine": ["Italian", "Pizza"],
       "rating": 4.4,
       "estimated_cost": 800,

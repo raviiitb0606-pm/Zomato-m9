@@ -250,6 +250,27 @@ def test_city_searches_get_no_widen_offer(page, fake):
     assert page.inner_text(".note") == "Only 4 restaurants matched."
 
 
+def test_cards_link_to_zomato_in_a_new_tab(page, fake):
+    fake.replies.append(LLMError("down"))
+    search(page)  # BTM: r5 has no Zomato link in the fixture
+    first = page.locator(".card").first.locator(".zomato-link")
+    assert first.inner_text() == "View on Zomato"
+    assert first.get_attribute("href") == "https://www.zomato.com/bangalore/popular"
+    assert first.get_attribute("target") == "_blank" and first.get_attribute("rel") == "noopener noreferrer"
+    unrated = page.locator(".card", has_text="New Place")
+    assert unrated.locator(".zomato-link").count() == 0  # no link in the data, none shown
+
+
+def test_only_zomato_links_become_clickable(page):
+    page.route("**/recommend", lambda route: route.fulfill(status=200, content_type="application/json", body=json.dumps({
+        "summary": "", "relaxed_constraints": [], "llm_fallback": False, "message": None,
+        "recommendations": [{"rank": 1, "id": "x", "name": "Bad Link", "locality": None, "cuisine": [], "rating": None,
+                             "estimated_cost": None, "explanation": "x", "explanation_source": "llm",
+                             "zomato_url": "javascript:alert(1)"}]})))
+    search(page)
+    assert page.locator(".zomato-link").count() == 0
+
+
 def test_model_and_data_text_is_shown_literally(page, fake):
     fake.replies.append(json.dumps({
         "summary": "<img src=x onerror=\"document.title='pwned'\"> **bold**",

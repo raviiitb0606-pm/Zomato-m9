@@ -9,7 +9,7 @@ AI restaurant recommendations over Zomato data for Bangalore. You pick a locatio
 1. **Filter in code.** The location must be Bangalore or one of its neighbourhoods; budget tier, cuisines and minimum rating are hard filters over `data/restaurants.parquet` (12,453 outlets). If nothing matches, the rating and then the budget are loosened, and the response says what was loosened.
 2. **Shortlist.** Matches are pre-ranked by a vote-weighted (Bayesian) rating; the top 10 go to the model.
 3. **Rank and explain.** One call to Groq (`openai/gpt-oss-120b`, strict JSON output) picks up to 10 of them, best first, with a one-sentence explanation each and a one-sentence summary.
-4. **Validate.** Picks are checked against the shortlist; names, cuisines, ratings, costs and neighbourhoods are copied from the data, never from the model.
+4. **Validate.** Picks are checked against the shortlist; names, cuisines, ratings, costs, neighbourhoods and Zomato links are copied from the data, never from the model.
 5. **Fall back.** If the model fails, times out or is over budget, the pre-ranked shortlist is returned with plain descriptions and `llm_fallback: true`; the page says so.
 
 ## Tech stack
@@ -124,7 +124,7 @@ The model's job is narrow: order a shortlist the code built and explain each pic
 - Only listed numbers: the schema makes `id` an integer; the engine drops numbers that aren't in the list and duplicates, and tops up from the pre-ranked shortlist, so invented restaurants never reach the user.
 
 **What it can say**
-- Facts come from the data: name, cuisines, rating, cost for two and neighbourhood are taken from the dataset row, not the model's text.
+- Facts come from the data: name, cuisines, rating, cost for two, neighbourhood and the Zomato link are taken from the dataset row, not the model's text. Links are kept only if they are `https://www.zomato.com/...` pages, without the dataset's search-tracking query, and the page opens them in a new tab. The dataset dates from about 2019, so a restaurant may have closed or changed since; a sample of 30 links all still opened the right page.
 - The model writes only the summary and the explanations. Explanations are trimmed to 500 characters; the page inserts all of it as plain text, never HTML.
 - The prompt forbids invented ambience, service, noise, distance or prices, and requires saying when the data can't confirm a wish.
 

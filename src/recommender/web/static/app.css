@@ -176,6 +176,9 @@ textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent
 .rating .ico-sm { width: 14px; height: 14px; color: var(--accent); }
 .rating-of { color: var(--muted); font-weight: 400; }
 .rating.none { color: var(--muted); font-weight: 500; }
+.zomato-link { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; color: var(--accent); text-decoration: none; white-space: nowrap; padding: 2px 0; }
+.zomato-link:hover { text-decoration: underline; }
+.zomato-link .ico-sm { width: 13px; height: 13px; }
 .cost { font-size: 13px; color: var(--muted); white-space: nowrap; }
 .cost strong { color: var(--text); font-weight: 600; }
 .why { display: flex; gap: 10px; align-items: flex-start; background: rgba(245, 165, 36, 0.06); border: 1px solid rgba(245, 165, 36, 0.2); border-radius: var(--r); padding: 12px 14px; font-size: 14px; line-height: 21px; }
