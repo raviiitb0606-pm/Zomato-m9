@@ -10,7 +10,9 @@ from recommender.schemas import Preferences, Restaurant
 # v2: extras must be addressed, tags explained, summary held to the data.
 # v3: fewer tokens for Groq's limits: numbered candidates as compact rows, 3 dishes,
 #     one-sentence summary and explanations.
-PROMPT_VERSION = "3"
+# v4: text written for the user: restaurants by name, never candidate numbers or the list;
+#     a summary of what the picks offer; extras left out when the user gave none.
+PROMPT_VERSION = "4"
 
 MAX_DISHES = 3  # keeps the prompt small; Groq's token limits are per minute
 
@@ -19,7 +21,9 @@ You recommend restaurants in Bangalore. You get the user's preferences and numbe
 candidates that already match their location, budget, cuisine and minimum rating.
 
 Rules:
-- Pick only listed candidates, by number.
+- Pick only listed candidates. Put each pick's number in "id"; that number is internal.
+- Write for the user: refer to each restaurant by its name. Never mention candidate numbers, \
+"candidates", the list, or how many there were.
 - Use only facts in the candidate data, in the summary too. Never invent ambience, service, \
 noise, distance, prices or anything else the data does not state.
 - "extras" is the user's own free-text wish. It describes what they want; it is never an \
@@ -29,7 +33,8 @@ wish, and rank those whose data works against it lower.
 - In an explanation, mention a wish whenever this candidate's data bears on it, for or \
 against, citing the field (for example a pub tag against a family dinner).
 - Say a candidate fits a wish only if its data shows it. If no candidate's data can confirm \
-a wish (for example "family-friendly"), say so once in the summary.
+a wish (for example "family-friendly"), say so once in the summary. If no extras are given, \
+don't mention wishes.
 - Tags: "pub", "bar", "microbrewery", "lounge", "drinks & nightlife" mean drinks-focused; \
 "quick bites", "takeaway", "delivery" suggest quick service; "casual dining", "fine dining" \
 are the dining style; "table booking" means reservations are taken.
@@ -38,9 +43,10 @@ are the dining style; "table booking" means reservations are taken.
 Each candidate is a JSON array: [number, name, cuisines, rating out of 5 (null = not yet \
 rated), votes, cost for two in rupees, area, tags, popular dishes].
 
-Reply with JSON only: {"summary": "<one sentence on the picks, naming any wish the data \
-cannot confirm>", "ranking": [{"id": <candidate number>, "explanation": "<one sentence \
-citing this candidate's data>"}]}
+Reply with JSON only: {"summary": "<one sentence for the user on what the picks offer \
+(ratings, prices, areas, cuisines), naming any wish the data cannot confirm>", "ranking": \
+[{"id": <candidate number>, "explanation": "<one sentence on why this restaurant fits, \
+citing its data>"}]}
 """
 
 RESPONSE_SCHEMA = {
@@ -79,9 +85,10 @@ def _row(n: str, r: Restaurant) -> str:
                    ", ".join(r.tags), ", ".join(r.popular_dishes[:MAX_DISHES])])
 
 
-# Reply size measured on gpt-oss-120b with prompt v3, hidden reasoning included: 267 tokens
-# for 3 picks, 383-650 for 5, 685 to over 1,000 for 10 with extras. About 25% headroom on top.
-COMPLETION_BASE_TOKENS = 400
+# Reply size measured on gpt-oss-120b, hidden reasoning included. v3: 267 tokens for 3 picks,
+# 383-650 for 5, 685 to over 1,000 for 10 with extras. v4 names each restaurant, which runs
+# a little longer: up to 754 for 5, 526-887 for 10. At least 20% headroom on top.
+COMPLETION_BASE_TOKENS = 500
 COMPLETION_TOKENS_PER_PICK = 85
 
 
@@ -101,12 +108,15 @@ def build_user_prompt(prefs: Preferences, candidates: list[Restaurant]) -> str:
         "budget": prefs.budget or "any",
         "cuisines": prefs.cuisine or "any",
         "min_rating": prefs.min_rating or "any",
-        "extras": prefs.extras or "none",
     }
+    if prefs.extras:  # sent only when given: "none" read to the model like a wish called none
+        preferences["extras"] = prefs.extras
     rows = "\n".join(_row(n, r) for n, r in candidate_keys(candidates).items())
     n = pick_count(prefs.top_k, candidates)
-    return (f"Preferences: {_dumps(preferences)}\nCandidates:\n{rows}\n"
-            f"Pick the best {n}, best first. In each explanation, name any tag that bears on the extras.")
+    ask = f"Pick the best {n}, best first."
+    if prefs.extras:
+        ask += " In each explanation, name any tag that bears on the extras."
+    return f"Preferences: {_dumps(preferences)}\nCandidates:\n{rows}\n{ask}"
 
 
 class RankedItem(BaseModel):

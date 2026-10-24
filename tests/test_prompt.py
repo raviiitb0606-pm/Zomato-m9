@@ -87,7 +87,7 @@ def test_candidate_keys_match_the_prompt_numbers():
     assert {k: r.id for k, r in candidate_keys(CANDIDATES).items()} == {"1": "a1", "2": "b2"}
 
 
-@pytest.mark.parametrize("picks,most_seen", [(3, 267), (5, 650), (10, 1024)])
+@pytest.mark.parametrize("picks,most_seen", [(3, 267), (5, 754), (10, 1024)])
 def test_completion_budget_leaves_room_over_the_largest_replies_seen(picks, most_seen):
     assert completion_budget(picks) >= most_seen * 1.2
 
@@ -99,7 +99,17 @@ def test_asks_for_no_more_than_the_candidates():
 
 def test_unset_preferences_say_any():
     prefs = preferences(build_user_prompt(Preferences(location="BTM"), CANDIDATES))
-    assert prefs == {"location": "BTM", "budget": "any", "cuisines": "any", "min_rating": "any", "extras": "none"}
+    assert prefs == {"location": "BTM", "budget": "any", "cuisines": "any", "min_rating": "any"}
+
+
+def test_no_extras_means_no_extras_in_the_prompt():
+    # v3 sent "extras": "none", and the model wrote about "the 'none' preference".
+    prompt = build_user_prompt(Preferences(location="BTM"), CANDIDATES)
+    assert "extras" not in prompt and prompt.endswith("Pick the best 2, best first.")
+
+
+def test_system_prompt_keeps_candidate_numbers_internal():
+    assert "Never mention candidate numbers" in SYSTEM_PROMPT and "by its name" in SYSTEM_PROMPT
 
 
 def test_schema_meets_groq_strict_rules():

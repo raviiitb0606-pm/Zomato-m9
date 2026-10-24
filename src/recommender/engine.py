@@ -5,6 +5,7 @@ CLI: python -m recommender.engine --location Indiranagar --budget medium --cuisi
 
 import argparse
 import logging
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -44,6 +45,15 @@ def template_explanation(r: Restaurant) -> str:
     if r.locality:
         parts.append(f"in {r.locality}")
     return "; ".join(parts) + "."
+
+
+# The prompt numbers candidates internally; if the model still writes "Candidate 3", the
+# user would see a number that isn't the result's rank. Put the restaurant's name in.
+_CANDIDATE_REF = re.compile(r"\b[Cc]andidate\s*(?:#|no\.?\s*)?(\d+)\b")
+
+
+def _name_candidates(text: str, by_key: dict[str, Restaurant]) -> str:
+    return _CANDIDATE_REF.sub(lambda m: by_key[m.group(1)].name if m.group(1) in by_key else m.group(0), text)
 
 
 def _trim(text: str) -> str:
@@ -161,7 +171,7 @@ class Engine:
                 dropped += 1
                 continue
             seen.add(r.id)
-            explanation = _trim(item.explanation)
+            explanation = _trim(_name_candidates(item.explanation, by_key))
             if explanation:
                 picked.append((r, explanation, "llm"))
             else:
@@ -180,7 +190,7 @@ class Engine:
                 picked.append((r, template_explanation(r), "template"))
 
         llm_fallback = not any(source == "llm" for _, _, source in picked)
-        summary = FALLBACK_SUMMARY if llm_fallback else (reply.summary.strip() or "")
+        summary = FALLBACK_SUMMARY if llm_fallback else _name_candidates(reply.summary.strip(), by_key)
         return RecommendationResponse(
             summary=summary,
             recommendations=[

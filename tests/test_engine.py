@@ -152,6 +152,23 @@ def test_unexpected_exceptions_propagate(store):
         eng.recommend(BTM)
 
 
+# --- candidate numbers in the text ---------------------------------------------
+
+def test_candidate_numbers_in_text_become_names(store):
+    order = preranked(store)
+    name = {i: r.name for i, r in enumerate(store.get(order), 1)}
+    eng, _ = engine(store, json.dumps({
+        "summary": "Candidate 2 is the cheapest; candidate #1 is rated highest.",
+        "ranking": [{"id": 1, "explanation": "Candidate 1 beats Candidate 2 and candidate no. 3."},
+                    {"id": 2, "explanation": "Candidate 9 is not a candidate here."},
+                    {"id": 3, "explanation": "Rated well."}],
+    }))
+    resp = eng.recommend(BTM)
+    assert resp.summary == f"{name[2]} is the cheapest; {name[1]} is rated highest."
+    assert resp.recommendations[0].explanation == f"{name[1]} beats {name[2]} and {name[3]}."
+    assert resp.recommendations[1].explanation == "Candidate 9 is not a candidate here."  # not in the list: left alone
+
+
 # --- deadline ----------------------------------------------------------------
 
 class SlowClient:

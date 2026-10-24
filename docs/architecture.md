@@ -22,7 +22,7 @@ Companion to [problemStatement.md](problemStatement.md). This document describes
 | Config | `.env` + `pydantic-settings` | Keys and model name out of code |
 | Tests | `pytest` | Unit tests on ingestion and filtering, mocked LLM tests |
 
-The LLM client sits behind a small interface (`LLMClient.complete(system, user, response_schema) -> str`), so the provider can be swapped without touching the rest of the code. Groq counts each request's full `max_completion_tokens` against the tokens-per-minute limit, so each call asks only for what its reply needs: 400 + 85 tokens per pick (825 for 5 picks), up to `LLM_MAX_COMPLETION_TOKENS` (default 1280).
+The LLM client sits behind a small interface (`LLMClient.complete(system, user, response_schema) -> str`), so the provider can be swapped without touching the rest of the code. Groq counts each request's full `max_completion_tokens` against the tokens-per-minute limit, so each call asks only for what its reply needs: 500 + 85 tokens per pick (925 for 5 picks, 1,350 for 10), up to `LLM_MAX_COMPLETION_TOKENS` (default 1400).
 
 ## 3. High-level architecture
 
